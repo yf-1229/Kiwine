@@ -39,20 +39,31 @@ uint8_t logged_times = 0;
 
 class Bamboo {
     public:
-    uint8_t id;
+    bool selected = false;
+    uint16_t x;
     uint8_t thickness;
+    uint8_t height;
 
 public:
-    Bamboo(uint8_t id, uint8_t thickness) {
-        this->id = id;
+    Bamboo(bool selected, uint16_t x, uint8_t thickness, uint8_t height) {
+        this->selected = selected;
+        this->x = x;
         this->thickness = thickness;
+        this->height = height;
     }
 
-    uint16_t get_bamboo_position(uint8_t id) {
+    uint16_t get_bamboo_position(uint8_t id, uint8_t watered_times) {
         // get_section_y() // TODO: from ydf
-        return std::make_pair(y1, y2, y3);
+        // return std::make_pair(y1, y2, y3);
     }
 };
+
+Bamboo bam0(false, 10, 5, 20);
+Bamboo bam1(false, 20, 5, 20);
+Bamboo bam2(false, 30, 5, 20);
+Bamboo bam3(false, 40, 5, 20);
+Bamboo bam4(false, 50, 5, 20);
+Bamboo bam5(false, 60, 5, 20);
 
 // --- Functions ---
 // update User and Bamboo Parameter
