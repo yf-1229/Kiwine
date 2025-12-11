@@ -109,6 +109,14 @@ void draw_player_selected(Bamboo &bamboo) {
     const std::atomic_uint16_t x_end(bamboo.x + 2);
     const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
     const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 10);
+
+    Paint_DrawRectangle(
+        x_start.load(),
+        y_start.load(),
+        x_end.load() + 5,
+        y_end.load() + 5,
+        0xFFFF,  // 白色
+        DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
 
 int LCD() {
