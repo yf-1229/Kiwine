@@ -2,6 +2,7 @@
 
 #include "main.h"
 #include <atomic>
+#include <functional>
 #include <random>
 #include <iostream>
 #include <mutex>
@@ -65,6 +66,7 @@ Bamboo bam3(false, 40, 5, 20);
 Bamboo bam4(false, 50, 5, 20);
 Bamboo bam5(false, 60, 5, 20);
 
+
 // --- Functions ---
 // update User and Bamboo Parameter
 void core1_entry() {
@@ -87,14 +89,26 @@ void core1_entry() {
     }
 }
 
-void draw_selected_bamboo(uint8_t id) {
+void draw_bamboo(Bamboo &bamboo) {
+    const std::atomic_uint16_t x_start(bamboo.x);
+    const std::atomic_uint16_t x_end(bamboo.x + 2);
+    const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
+    const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 5);
+
     Paint_DrawRectangle(
-        selected_x.load(),
-        selected_y.load(),
-        selected_x.load() + 5,
-        selected_y.load() + 5,
+        x_start.load(),
+        y_start.load(),
+        x_end.load() + 5,
+        y_end.load() + 5,
         0xFFFF,  // 白色
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
+}
+
+void draw_player_selected(Bamboo &bamboo) {
+    const std::atomic_uint16_t x_start(bamboo.x - 2);
+    const std::atomic_uint16_t x_end(bamboo.x + 2);
+    const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
+    const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 10);
 }
 
 int LCD() {
