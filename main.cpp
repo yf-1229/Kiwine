@@ -13,6 +13,7 @@
 #include "external/ydf/ydf_model.h"
 #include "Infrared.h"
 #include "pico/stdio.h"
+#include <vector>
 
 extern "C" {
 #include <stdio.h>
@@ -59,12 +60,9 @@ public:
     }
 };
 
-Bamboo bam0(false, 10, 5, 20);
-Bamboo bam1(false, 20, 5, 20);
-Bamboo bam2(false, 30, 5, 20);
-Bamboo bam3(false, 40, 5, 20);
-Bamboo bam4(false, 50, 5, 20);
-Bamboo bam5(false, 60, 5, 20);
+for (uint8_t i = 0; i < 5; i++) {
+    bamboos.push_back(Bamboo());
+}
 
 
 // --- Functions ---
@@ -89,8 +87,8 @@ void core1_entry() {
     }
 }
 
-void draw_bamboo(Bamboo &bamboo) {
-    const std::atomic_uint16_t x_start(bamboo.x);
+void draw_bamboo(uint8_t n) {
+    const std::atomic_uint16_t x_start(bamboo[n].x);
     const std::atomic_uint16_t x_end(bamboo.x + 2);
     const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
     const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 5);
@@ -105,7 +103,7 @@ void draw_bamboo(Bamboo &bamboo) {
 }
 
 void draw_player_selected(Bamboo &bamboo) {
-    const std::atomic_uint16_t x_start(bamboo.x - 2);
+    const std::atomic_uint16_t x_start(bamboo.x);
     const std::atomic_uint16_t x_end(bamboo.x + 2);
     const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
     const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 10);
@@ -165,6 +163,7 @@ int LCD() {
             // Select Bamboo
             if (DEV_Digital_Read(keyUp) == 0) {
                 screen_updated = true;
+                
             }
             if (DEV_Digital_Read(keyDown) == 0) {
 
