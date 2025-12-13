@@ -60,9 +60,13 @@ public:
     }
 };
 
+std::vector<Bamboo> bamboos;
+
 for (uint8_t i = 0; i < 5; i++) {
     bamboos.push_back(Bamboo());
 }
+
+class Rottened_bamboo {}
 
 
 // --- Functions ---
@@ -87,12 +91,14 @@ void core1_entry() {
     }
 }
 
-void draw_bamboo(uint8_t n) {
+void draw_bamboo(const std::vector<Bamboo>& bamboos) {
     const std::atomic_uint16_t x_start(bamboo[n].x);
     const std::atomic_uint16_t x_end(bamboo.x + 2);
     const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
     const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 5);
-
+    for (const auto& bamboo : bamboos) {
+        // 読み取りのみ
+    }
     Paint_DrawRectangle(
         x_start.load(),
         y_start.load(),
@@ -102,9 +108,12 @@ void draw_bamboo(uint8_t n) {
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
 
-void draw_player_selected(Bamboo &bamboo) {
-    const std::atomic_uint16_t x_start(bamboo.x);
-    const std::atomic_uint16_t x_end(bamboo.x + 2);
+void draw_rottened_bamboo(uint8_t n) {
+}
+
+void draw_player_selected(uint8_t n) {
+    const std::atomic_uint16_t x_start(bamboo[n].x);
+    const std::atomic_uint16_t x_end(bamboo[n].x + 2);
     const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
     const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 10);
 
