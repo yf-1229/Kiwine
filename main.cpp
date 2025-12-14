@@ -55,7 +55,20 @@ public:
     }
 };
 
-class Rotten_bamboo {};
+class Rotten_bamboo {
+public:
+    uint16_t x;
+    uint8_t thickness;
+    uint8_t height;
+
+public:
+    Rotten_bamboo(uint16_t x, uint8_t t, uint8_t h) : x(x), thickness(t), height(h) {}
+
+    void get_rotten_bamboo_paramater(std::vector<Bamboo> bamboos, uint8_t n) {
+        x = bamboos[n].x;
+
+    }
+};
 
 
 // --- Functions ---
