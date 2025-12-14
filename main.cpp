@@ -47,26 +47,15 @@ class Bamboo {
     uint8_t height;
 
 public:
-    Bamboo(bool selected, uint16_t x, uint8_t thickness, uint8_t height) {
-        this->selected = selected;
-        this->x = x;
-        this->thickness = thickness;
-        this->height = height;
-    }
+    Bamboo(bool s, uint16_t x, uint8_t t, uint8_t h) : selected(s), x(x), thickness(t), height(h) {}
 
-    uint16_t get_bamboo_position(uint8_t id, uint8_t watered_times) {
+    uint16_t get_bamboo_paramater(uint8_t watered_times) {
         // get_section_y() // TODO: from ydf
         // return std::make_pair(y1, y2, y3);
     }
 };
 
-std::vector<Bamboo> bamboos;
-
-for (uint8_t i = 0; i < 5; i++) {
-    bamboos.push_back(Bamboo());
-}
-
-class Rottened_bamboo {}
+class Rotten_bamboo {};
 
 
 // --- Functions ---
@@ -74,12 +63,20 @@ class Rottened_bamboo {}
 void core1_entry() {
     // ハンドシェイク
     multicore_fifo_push_blocking(HELLO_MSG);
-
     while (1) {
         uint32_t rcvDat = multicore_fifo_pop_blocking();
         if (rcvDat == EXIT_LOOP) {
             printf("CORE1: Received");
             break;
+        }
+        std::vector<Bamboo> bamboos;
+        bamboos.emplace_back(false, 10, 2, 50);
+        bamboos.emplace_back(false, 20, 3, 80);
+        bamboos.emplace_back(false, 30, 5, 20);
+        bamboos.emplace_back(false, 40, 5, 20);
+        bamboos.emplace_back(false, 50, 5, 20);
+        for (auto& bamboo : bamboos) {
+            bamboo.get_bamboo_paramater(watered_times);
         }
         // grow_bamboo() // TODO
         param_changed = true;
@@ -92,30 +89,30 @@ void core1_entry() {
 }
 
 void draw_bamboo(const std::vector<Bamboo>& bamboos) {
-    const std::atomic_uint16_t x_start(bamboo[n].x);
-    const std::atomic_uint16_t x_end(bamboo.x + 2);
-    const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
-    const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 5);
     for (const auto& bamboo : bamboos) {
-        // 読み取りのみ
-    }
-    Paint_DrawRectangle(
+        const std::atomic_uint16_t x_start(bamboo.x);
+        const std::atomic_uint16_t x_end(bamboo.x + 2);
+        const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
+        const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 5);
+
+        Paint_DrawRectangle(
         x_start.load(),
         y_start.load(),
         x_end.load() + 5,
         y_end.load() + 5,
         0xFFFF,  // 白色
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
+    }
 }
 
 void draw_rottened_bamboo(uint8_t n) {
 }
 
-void draw_player_selected(uint8_t n) {
-    const std::atomic_uint16_t x_start(bamboo[n].x);
-    const std::atomic_uint16_t x_end(bamboo[n].x + 2);
+void draw_player_selected(const std::vector<Bamboo>& bamboos, uint8_t n) {
+    const std::atomic_uint16_t x_start(bamboos[n].x);
+    const std::atomic_uint16_t x_end(bamboos[n].x + 2);
     const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
-    const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 10);
+    const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboos[n].height - 10);
 
     Paint_DrawRectangle(
         x_start.load(),
@@ -169,6 +166,7 @@ int LCD() {
     while (true) {
         screen_updated = false;
         while (true) {
+            draw_bamboo(std::vector<Bamboo>{});
             // Select Bamboo
             if (DEV_Digital_Read(keyUp) == 0) {
                 screen_updated = true;
@@ -238,6 +236,8 @@ int LCD() {
 
     return 0;
 }
+
+
 // TIP コードを<b>Run</b>するには、<shortcut actionId="Run"/> を押すか、ガターにある <icon src="AllIcons.Actions.Execute"/> アイコンをクリックします。
 int main() {
     stdio_init_all();
