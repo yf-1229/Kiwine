@@ -51,6 +51,7 @@ public:
     }
 };
 
+std::vector<Bamboo>* g_bamboos = nullptr;
 
 class Rotten_bamboo {
 public:
@@ -79,14 +80,10 @@ void core1_entry() {
             printf("CORE1: Received");
             break;
         }
-        std::vector<Bamboo> bamboos;
-        bamboos.emplace_back(false, 10, 2, 50);
-        bamboos.emplace_back(false, 20, 3, 80);
-        bamboos.emplace_back(false, 30, 5, 20);
-        bamboos.emplace_back(false, 40, 5, 20);
-        bamboos.emplace_back(false, 50, 5, 20);
-        for (auto& bamboo : bamboos) {
-            bamboo.get_bamboo_paramater(watered_times);
+        if (g_bamboos) {
+            for (auto& bamboo : *g_bamboos) {
+                bamboo.get_bamboo_paramater(watered_times);
+            }
         }
         // grow_bamboo() // TODO
         param_changed = true;
@@ -146,7 +143,7 @@ void draw_player_selected(const std::vector<Bamboo>& bamboos, uint8_t n) {
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
 
-int LCD() {
+int LCD(const std::vector<Bamboo>& bamboos) {
     DEV_Delay_ms(100);
     printf("LCD_1in3_test \r\n");
     if (DEV_Module_Init() != 0) {
@@ -189,7 +186,7 @@ int LCD() {
     while (true) {
         screen_updated = false;
         while (true) {
-            draw_bamboo(std::vector<Bamboo>{Bamboo(false, 10, 2, 50), Bamboo(false, 20, 3, 80), Bamboo(false, 30, 5, 20)});
+            draw_bamboo(bamboos);
             // Select Bamboo
             if (DEV_Digital_Read(keyUp) == 0) {
                 screen_updated = true;
@@ -277,7 +274,16 @@ int main() {
         printf("Waiting CORE1.\r\n");
     }
 
-    LCD();
+    std::vector<Bamboo> bamboos;
+    bamboos.emplace_back(false, 10, 2, 50);
+    bamboos.emplace_back(false, 20, 3, 80);
+    bamboos.emplace_back(false, 30, 5, 20);
+    bamboos.emplace_back(false, 40, 5, 20);
+    bamboos.emplace_back(false, 50, 5, 20);
+
+    g_bamboos = &bamboos;
+
+    LCD(bamboos);
 
     return 0;
 }
