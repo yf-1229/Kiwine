@@ -27,6 +27,7 @@ include_directories(./external/Infrared)
 add_executable(BamBoo
         main.cpp
         main.h
+        external/ydf/ydf_model.h
 )
 
 # enable usb output, disable uart output

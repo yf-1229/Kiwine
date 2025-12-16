@@ -1,11 +1,12 @@
 //
 // Created by yuta on 2025/12/06.
 //
+#pragma once
+
 
 #ifndef BAMBOO_MAIN_H
 #define BAMBOO_MAIN_H
 
-#include <cstdint>
 
 #define keyA 15
 #define keyB 17
@@ -23,3 +24,6 @@
 #define EXIT_LOOP   (99997)
 
 #endif //BAMBOO_MAIN_H
+
+int LCD();
+int main();

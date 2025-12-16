@@ -2,18 +2,13 @@
 
 #include "main.h"
 #include <atomic>
-#include <functional>
 #include <random>
 #include <iostream>
 #include <mutex>
 #include "pico/stdlib.h"
-#include "pico/mutex.h"
 #include "pico/aon_timer.h"
 #include "pico/multicore.h"
 #include "external/ydf/ydf_model.h"
-#include "Infrared.h"
-#include "pico/stdio.h"
-#include <vector>
 
 extern "C" {
 #include <stdio.h>
@@ -51,9 +46,11 @@ public:
 
     uint16_t get_bamboo_paramater(uint8_t watered_times) {
         // get_section_y() // TODO: from ydf
-        // return std::make_pair(y1, y2, y3);
+        //return std::make_pair(y1, y2, y3);
+        return bamboo_sum;
     }
 };
+
 
 class Rotten_bamboo {
 public:
@@ -64,7 +61,7 @@ public:
 public:
     Rotten_bamboo(uint16_t x, uint8_t t, uint8_t h) : x(x), thickness(t), height(h) {}
 
-    void get_rotten_bamboo_paramater(std::vector<Bamboo> bamboos, uint8_t n) {
+    void get_rotten_bamboo_parameter(const std::vector<Bamboo> &bamboos, uint8_t n) {
         x = bamboos[n].x;
 
     }
@@ -113,12 +110,25 @@ void draw_bamboo(const std::vector<Bamboo>& bamboos) {
         y_start.load(),
         x_end.load() + 5,
         y_end.load() + 5,
-        0xFFFF,  // 白色
+        0xF800,
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
     }
 }
 
-void draw_rottened_bamboo(uint8_t n) {
+void draw_rotten_bamboo(const std::vector<Rotten_bamboo>& rotten_bamboos) {
+    for (const auto& rotten_bamboo : rotten_bamboos) {
+        const std::atomic_uint16_t x_start(rotten_bamboo.x);
+        const std::atomic_uint16_t x_end(rotten_bamboo.x + 2);
+        const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
+        const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - rotten_bamboo.height - 5);
+        Paint_DrawRectangle(
+            x_start.load(),
+            y_start.load(),
+            x_end.load() + 5,
+            y_end.load() + 5,
+            0xF800,  // 赤色
+            DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
+    }
 }
 
 void draw_player_selected(const std::vector<Bamboo>& bamboos, uint8_t n) {
@@ -132,7 +142,7 @@ void draw_player_selected(const std::vector<Bamboo>& bamboos, uint8_t n) {
         y_start.load(),
         x_end.load() + 5,
         y_end.load() + 5,
-        0xFFFF,  // 白色
+        0xF800,
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
 
@@ -179,7 +189,7 @@ int LCD() {
     while (true) {
         screen_updated = false;
         while (true) {
-            draw_bamboo(std::vector<Bamboo>{});
+            draw_bamboo(std::vector<Bamboo>{Bamboo(false, 10, 2, 50), Bamboo(false, 20, 3, 80), Bamboo(false, 30, 5, 20)});
             // Select Bamboo
             if (DEV_Digital_Read(keyUp) == 0) {
                 screen_updated = true;
@@ -189,12 +199,12 @@ int LCD() {
 
                 screen_updated = true;
             }
-            if (DEV_Digital_Read(keyLeft) == 0) {
-
+            if (DEV_Digital_Read(keyLeft) == 0 && selected_bamboo > 0) {
+                selected_bamboo --;
                 screen_updated = true;
             }
-            if (DEV_Digital_Read(keyRight) == 0) {
-
+            if (DEV_Digital_Read(keyRight) == 0 && selected_bamboo < bamboo_sum + 1) {
+                selected_bamboo ++;
                 screen_updated = true;
             }
 
