@@ -40,9 +40,16 @@ class Bamboo {
     uint16_t x;
     uint8_t thickness;
     uint8_t height;
+    mutable uint16_t old;
 
 public:
-    Bamboo(bool s, uint16_t x, uint8_t t, uint8_t h) : selected(s), x(x), thickness(t), height(h) {}
+    Bamboo(bool s, uint16_t x, uint8_t t, uint8_t h, uint16_t o) : selected(s), x(x), thickness(t), height(h), old(o) {}
+
+    void reset_parameter() {
+        thickness = 0;
+        height = 0;
+        old = 0;
+    }
 
     uint16_t get_bamboo_paramater(uint8_t watered_times) {
         // get_section_y() // TODO: from ydf
@@ -95,12 +102,26 @@ void core1_entry() {
     }
 }
 
-void draw_bamboo(const std::vector<Bamboo>& bamboos) {
+void draw_bamboo(const std::vector<Bamboo>& bamboos) { // TODO: separate class draw_bamboo and set_bamboo
     for (const auto& bamboo : bamboos) {
         const std::atomic_uint16_t x_start(bamboo.x);
         const std::atomic_uint16_t x_end(bamboo.x + 2);
         const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
         const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 5);
+
+        bamboo.old++;
+        if (bamboo.old > 20) {
+            Paint_DrawRectangle(
+                x_start.load(),
+                y_start.load(),
+                x_end.load() + 5,
+                y_end.load() + 5,
+                0x0000,
+                DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
+            bamboo.reset_parameter();
+
+        }
+
 
         Paint_DrawRectangle(
         x_start.load(),
@@ -112,7 +133,10 @@ void draw_bamboo(const std::vector<Bamboo>& bamboos) {
     }
 }
 
-void draw_rotten_bamboo(const std::vector<Rotten_bamboo>& rotten_bamboos) {
+void draw_rotten_bamboo(const std::vector<Rotten_bamboo>& rotten_bamboos, uint16_t elapsed_time) {
+    if (elapsed_time > 20) {
+
+    }
     for (const auto& rotten_bamboo : rotten_bamboos) {
         const std::atomic_uint16_t x_start(rotten_bamboo.x);
         const std::atomic_uint16_t x_end(rotten_bamboo.x + 2);
@@ -180,21 +204,26 @@ int LCD(const std::vector<Bamboo>& bamboos) {
 
     // 初期描画
     bool screen_updated = false;
+    uint16_t elapsed_time = 0;
     LCD_1IN3_Display(BlackImage);
     uint32_t core1_msg = 0;
 
     while (true) {
         screen_updated = false;
         while (true) {
-            draw_bamboo(bamboos);
+            elapsed_time++;
+            // --- Draw Screen ---
+            draw_bamboo(bamboos, elapsed_time); // TODO: replace to core1?
+
             // Select Bamboo
+            uint8_t n = selected_bamboo;
             if (DEV_Digital_Read(keyUp) == 0) {
                 screen_updated = true;
-                
+                draw_player_selected(bamboos, n);
             }
             if (DEV_Digital_Read(keyDown) == 0) {
-
                 screen_updated = true;
+                draw_player_selected(bamboos, n);
             }
             if (DEV_Digital_Read(keyLeft) == 0 && selected_bamboo > 0) {
                 selected_bamboo --;
