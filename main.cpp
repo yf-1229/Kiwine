@@ -102,8 +102,8 @@ void core1_entry() {
     }
 }
 
-void draw_bamboo(const std::vector<Bamboo>& bamboos) { // TODO: separate class draw_bamboo and set_bamboo
-    for (const auto& bamboo : bamboos) {
+void draw_bamboo(std::vector<Bamboo>& bamboos) { // TODO: separate class draw_bamboo and set_bamboo
+    for (auto& bamboo : bamboos) {
         const std::atomic_uint16_t x_start(bamboo.x);
         const std::atomic_uint16_t x_end(bamboo.x + 2);
         const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
@@ -119,7 +119,6 @@ void draw_bamboo(const std::vector<Bamboo>& bamboos) { // TODO: separate class d
                 0x0000,
                 DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
             bamboo.reset_parameter();
-
         }
 
 
@@ -213,7 +212,7 @@ int LCD(const std::vector<Bamboo>& bamboos) {
         while (true) {
             elapsed_time++;
             // --- Draw Screen ---
-            draw_bamboo(bamboos, elapsed_time); // TODO: replace to core1?
+            draw_bamboo(bamboos); // TODO: replace to core1?
 
             // Select Bamboo
             uint8_t n = selected_bamboo;
