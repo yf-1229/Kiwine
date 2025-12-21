@@ -26,73 +26,50 @@ bool game_status = false;
 bool screen_updated = false;
 
 
-// bamboo
-uint8_t bamboo_sum = 0;
-uint8_t selected_bamboo = 0;
+// pine
+uint8_t pine_thickness = 1;
+uint8_t pine_height = 1;
+uint16_t pine_x = 64;
 // user
 uint8_t watered_times = 0;
 uint8_t burned_times = 0;
 uint8_t logged_times = 0;
 
-class Bamboo {
+class Pinecone {
     public:
     bool selected = false;
     uint16_t x;
-    uint8_t thickness;
-    uint8_t height;
-    mutable uint16_t old;
 
 public:
-    Bamboo(bool s, uint16_t x, uint8_t t, uint8_t h, uint16_t o) : selected(s), x(x), thickness(t), height(h), old(o) {}
+    Pinecone(bool s, uint16_t x) : selected(s), x(x){}
 
-    void reset_parameter() {
-        thickness = 0;
-        height = 0;
-        old = 0;
-    }
-
-    uint16_t get_bamboo_paramater(uint8_t watered_times) {
+    uint16_t get_pinecone_parameter(uint8_t watered_times) {
         // get_section_y() // TODO: from ydf
         //return std::make_pair(y1, y2, y3);
-        return bamboo_sum;
+        return 0;
     }
 };
 
-std::vector<Bamboo>* g_bamboos = nullptr;
 
-class Rotten_bamboo {
-public:
-    uint16_t x;
-    uint8_t thickness;
-    uint8_t height;
-
-public:
-    Rotten_bamboo(uint16_t x, uint8_t t, uint8_t h) : x(x), thickness(t), height(h) {}
-
-    void get_rotten_bamboo_parameter(const std::vector<Bamboo> &bamboos, uint8_t n) {
-        x = bamboos[n].x;
-
-    }
-};
-
+std::vector<Pinecone>* g_pinecones = nullptr;
 
 // --- Functions ---
-// update User and Bamboo Parameter
+// update User and pine Parameter
 void core1_entry() {
     // ハンドシェイク
     multicore_fifo_push_blocking(HELLO_MSG);
-    while (1) {
+    while (true) {
         uint32_t rcvDat = multicore_fifo_pop_blocking();
         if (rcvDat == EXIT_LOOP) {
             printf("CORE1: Received");
             break;
         }
-        if (g_bamboos) {
-            for (auto& bamboo : *g_bamboos) {
-                bamboo.get_bamboo_paramater(watered_times);
+        if (g_pinecones) {
+            for (auto& pinecone : *g_pinecones) {
+                pinecone.get_pinecone_parameter(watered_times);
             }
         }
-        // grow_bamboo() // TODO
+        // grow_pine() // TODO
         param_changed = true;
     }
     printf("CORE1: IDLE.\r\n");
@@ -102,25 +79,12 @@ void core1_entry() {
     }
 }
 
-void draw_bamboo(std::vector<Bamboo>& bamboos) { // TODO: separate class draw_bamboo and set_bamboo
-    for (auto& bamboo : bamboos) {
-        const std::atomic_uint16_t x_start(bamboo.x);
-        const std::atomic_uint16_t x_end(bamboo.x + 2);
+void draw_pinecones(const std::vector<Pinecone>& pinecones) { // TODO: separate class draw_pine and set_pine
+    for (auto& pinecone : pinecones) {
+        const std::atomic_uint16_t x_start(pinecone.x);
+        const std::atomic_uint16_t x_end(pinecone.x + 2);
         const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
-        const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboo.height - 5);
-
-        bamboo.old++;
-        if (bamboo.old > 20) {
-            Paint_DrawRectangle(
-                x_start.load(),
-                y_start.load(),
-                x_end.load() + 5,
-                y_end.load() + 5,
-                0x0000,
-                DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
-            bamboo.reset_parameter();
-        }
-
+        const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - 5);
 
         Paint_DrawRectangle(
         x_start.load(),
@@ -132,31 +96,11 @@ void draw_bamboo(std::vector<Bamboo>& bamboos) { // TODO: separate class draw_ba
     }
 }
 
-void draw_rotten_bamboo(const std::vector<Rotten_bamboo>& rotten_bamboos, uint16_t elapsed_time) {
-    if (elapsed_time > 20) {
-
-    }
-    for (const auto& rotten_bamboo : rotten_bamboos) {
-        const std::atomic_uint16_t x_start(rotten_bamboo.x);
-        const std::atomic_uint16_t x_end(rotten_bamboo.x + 2);
-        const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
-        const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - rotten_bamboo.height - 5);
-        Paint_DrawRectangle(
-            x_start.load(),
-            y_start.load(),
-            x_end.load() + 5,
-            y_end.load() + 5,
-            0xF800,  // 赤色
-            DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
-    }
-}
-
-void draw_player_selected(const std::vector<Bamboo>& bamboos, uint8_t n) {
-    const std::atomic_uint16_t x_start(bamboos[n].x);
-    const std::atomic_uint16_t x_end(bamboos[n].x + 2);
+void draw_pine() {
+    const std::atomic_uint16_t x_start(pine_x);
+    const std::atomic_uint16_t x_end(pine_x+ 2);
     const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
-    const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - bamboos[n].height - 10);
-
+    const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - pine_height - 5);
     Paint_DrawRectangle(
         x_start.load(),
         y_start.load(),
@@ -166,7 +110,22 @@ void draw_player_selected(const std::vector<Bamboo>& bamboos, uint8_t n) {
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
 
-int LCD(const std::vector<Bamboo>& bamboos) {
+void draw_kiwi(const uint16_t kiwi_x) {
+    const std::atomic_uint16_t x_start(kiwi_x);
+
+    const std::atomic_uint16_t y_start(0);
+
+    Paint_DrawCircle(
+        x_start.load(),
+        y_start.load(),
+        3,
+        0x07E0,
+        DOT_PIXEL_4X4,
+        DRAW_FILL_EMPTY
+        );
+}
+
+int LCD(std::vector<Pinecone> &pinecones) {
     DEV_Delay_ms(100);
     printf("LCD_1in3_test \r\n");
     if (DEV_Module_Init() != 0) {
@@ -212,24 +171,22 @@ int LCD(const std::vector<Bamboo>& bamboos) {
         while (true) {
             elapsed_time++;
             // --- Draw Screen ---
-            draw_bamboo(bamboos); // TODO: replace to core1?
+            draw_pine();
+            draw_pinecones(pinecones);
+            // TODO: replace to core1?
 
-            // Select Bamboo
-            uint8_t n = selected_bamboo;
             if (DEV_Digital_Read(keyUp) == 0) {
                 screen_updated = true;
-                draw_player_selected(bamboos, n);
+                draw_kiwi(1);
             }
             if (DEV_Digital_Read(keyDown) == 0) {
                 screen_updated = true;
-                draw_player_selected(bamboos, n);
+                draw_kiwi(1);
             }
-            if (DEV_Digital_Read(keyLeft) == 0 && selected_bamboo > 0) {
-                selected_bamboo --;
+            if (DEV_Digital_Read(keyLeft) == 0) {
                 screen_updated = true;
             }
-            if (DEV_Digital_Read(keyRight) == 0 && selected_bamboo < bamboo_sum + 1) {
-                selected_bamboo ++;
+            if (DEV_Digital_Read(keyRight) == 0) {
                 screen_updated = true;
             }
 
@@ -240,16 +197,16 @@ int LCD(const std::vector<Bamboo>& bamboos) {
             }
             if (DEV_Digital_Read(keyB)) {
                 // confirmation_dialog() // TODO: make this function
-                // burn_bamboo(id) // TODO: make this function
+                // burn_pine(id) // TODO: make this function
                 screen_updated = true;
             }
             if (DEV_Digital_Read(keyX)) {
                 // confirmation_dialog() // TODO: make this function
-                // cut_bamboo(id, selected_y) // TODO: make this function
+                // cut_pine(id, selected_y) // TODO: make this function
                 screen_updated = true;
             }
             if (DEV_Digital_Read(keyY)) {
-                // water_bamboo() // TODO: make this function
+                // water_pine() // TODO: make this function
                 watered_times++;
                 screen_updated = true;
             }
@@ -302,16 +259,16 @@ int main() {
         printf("Waiting CORE1.\r\n");
     }
 
-    std::vector<Bamboo> bamboos;
-    bamboos.emplace_back(false, 10, 2, 50);
-    bamboos.emplace_back(false, 20, 3, 80);
-    bamboos.emplace_back(false, 30, 5, 20);
-    bamboos.emplace_back(false, 40, 5, 20);
-    bamboos.emplace_back(false, 50, 5, 20);
+    std::vector<Pinecone> pinecones;
+    pinecones.emplace_back(false, 10);
+    pinecones.emplace_back(false, 20);
+    pinecones.emplace_back(false, 30);
+    pinecones.emplace_back(false, 40);
+    pinecones.emplace_back(false, 50);
 
-    g_bamboos = &bamboos;
+    g_pinecones = &pinecones;
 
-    LCD(bamboos);
+    LCD(pinecones);
 
     return 0;
 }
