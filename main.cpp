@@ -110,12 +110,21 @@ void draw_pine() {
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
 
-void draw_kiwi(const uint16_t kiwi_x) {
+void draw_kiwi(const uint16_t kiwi_x, const bool kiwi_eating) {
     const std::atomic_uint16_t x_start(kiwi_x);
 
     const std::atomic_uint16_t y_start(0);
-
-    Paint_DrawCircle(
+    if (kiwi_eating) { // look above and catch pinecone
+        Paint_DrawCircle(
+            x_start.load(),
+            y_start.load(),
+            3,
+            0x07E0,
+            DOT_PIXEL_4X4,
+            DRAW_FILL_EMPTY
+        );
+    } else {
+        Paint_DrawCircle(
         x_start.load(),
         y_start.load(),
         3,
@@ -123,6 +132,7 @@ void draw_kiwi(const uint16_t kiwi_x) {
         DOT_PIXEL_4X4,
         DRAW_FILL_EMPTY
         );
+    }
 }
 
 int LCD(std::vector<Pinecone> &pinecones) {
@@ -268,7 +278,7 @@ int main() {
 
     g_pinecones = &pinecones;
 
-    LCD(pinecones);
+    LCD(pinecones); // core1での更新待つ？
 
     return 0;
 }
