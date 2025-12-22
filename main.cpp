@@ -34,6 +34,7 @@ uint16_t pine_x = 64;
 uint8_t watered_times = 0;
 uint8_t burned_times = 0;
 uint8_t logged_times = 0;
+bool kiwi_status = true;
 
 class Pinecone {
     public:
@@ -110,7 +111,7 @@ void draw_pine() {
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
 
-void draw_kiwi(const uint16_t kiwi_x, const bool kiwi_eating) {
+void draw_kiwi(const uint16_t kiwi_x) { // TODO change to kiwistatus
     const std::atomic_uint16_t x_start(kiwi_x);
 
     const std::atomic_uint16_t y_start(0);
@@ -123,7 +124,8 @@ void draw_kiwi(const uint16_t kiwi_x, const bool kiwi_eating) {
             DOT_PIXEL_4X4,
             DRAW_FILL_EMPTY
         );
-    } else {
+    } else if (kiwi_status == wet) {
+        while (kiwi_status == wet) {}
         Paint_DrawCircle(
         x_start.load(),
         y_start.load(),
@@ -132,8 +134,8 @@ void draw_kiwi(const uint16_t kiwi_x, const bool kiwi_eating) {
         DOT_PIXEL_4X4,
         DRAW_FILL_EMPTY
         );
-    }
-}
+    } 
+ }
 
 int LCD(std::vector<Pinecone> &pinecones) {
     DEV_Delay_ms(100);
