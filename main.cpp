@@ -126,15 +126,31 @@ void draw_kiwi(const uint16_t x) { // TODO change to kiwistatus
             DRAW_FILL_EMPTY
         );
     } else if (kiwi_status == wet) {
-        while (kiwi_status == wet) {}
-        Paint_DrawCircle(
-        x_start.load(),
-        y_start.load(),
-        3,
-        0x07E0,
-        DOT_PIXEL_4X4,
-        DRAW_FILL_EMPTY
-        );
+        while (kiwi_status == wet) {
+            bool shivering = false;
+            if (!shivering) {
+                Paint_DrawCircle(
+                    x_start.load(),
+                    y_start.load(),
+                    3,
+                    0x07E0,
+                    DOT_PIXEL_4X4,
+                    DRAW_FILL_EMPTY
+                );
+                shivering = true;
+            } else {
+                Paint_DrawCircle(
+                    x_start.load(),
+                    y_start.load(),
+                    3,
+                    0x07E0,
+                    DOT_PIXEL_4X4,
+                    DRAW_FILL_EMPTY
+                );
+                shivering = false;
+            }
+        }
+        
     } 
  }
 
