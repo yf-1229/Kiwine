@@ -35,6 +35,7 @@ uint8_t watered_times = 0;
 uint8_t burned_times = 0;
 uint8_t logged_times = 0;
 bool kiwi_status = true;
+uint16_t kiwi_x = 0;
 
 class Pinecone {
     public:
@@ -111,8 +112,8 @@ void draw_pine() {
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
 
-void draw_kiwi(const uint16_t kiwi_x) { // TODO change to kiwistatus
-    const std::atomic_uint16_t x_start(kiwi_x);
+void draw_kiwi(const uint16_t x) { // TODO change to kiwistatus
+    const std::atomic_uint16_t x_start(x);
 
     const std::atomic_uint16_t y_start(0);
     if (kiwi_eating) { // look above and catch pinecone
