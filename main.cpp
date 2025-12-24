@@ -128,7 +128,7 @@ void draw_kiwi(uint16_t x) { // TODO change to kiwistatus
     } else if (kiwi_status == wet) {
         while (kiwi_status == wet) {
             bool shivering = false;
-            if (!shivering) {
+            if  (!shivering) {
                 Paint_DrawCircle(
                     x_start.load(),
                     y_start.load(),
@@ -150,7 +150,6 @@ void draw_kiwi(uint16_t x) { // TODO change to kiwistatus
                 shivering = false;
             }
         }
-        
     } 
  }
 
