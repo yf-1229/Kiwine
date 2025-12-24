@@ -112,7 +112,7 @@ void draw_pine() {
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
 
-void draw_kiwi(const uint16_t x) { // TODO change to kiwistatus
+void draw_kiwi(uint16_t x) { // TODO change to kiwistatus
     const std::atomic_uint16_t x_start(x);
 
     const std::atomic_uint16_t y_start(0);
@@ -206,10 +206,12 @@ int LCD(std::vector<Pinecone> &pinecones) {
 
             if (DEV_Digital_Read(keyUp) == 0) {
                 screen_updated = true;
-                draw_kiwi(1);
+                kiwi_x++
+                draw_kiwi(kiwi_x);
             }
             if (DEV_Digital_Read(keyDown) == 0) {
                 screen_updated = true;
+                kiwi_x++
                 draw_kiwi(1);
             }
             if (DEV_Digital_Read(keyLeft) == 0) {
