@@ -34,7 +34,13 @@ uint16_t pine_x = 64;
 uint8_t watered_times = 0;
 uint8_t burned_times = 0;
 uint8_t logged_times = 0;
-bool kiwi_status = true;
+
+enum class KiwiStatus : uint8_t {
+    Idle,
+    Eating,
+    Wet
+};
+KiwiStatus kiwi_status = KiwiStatus::Idle;
 uint16_t kiwi_x = 0;
 
 class Pinecone {
@@ -112,12 +118,13 @@ void draw_pine() {
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
 
-void draw_kiwi(uint16_t x) { // TODO change to kiwistatus
+void draw_kiwi(uint16_t x) {
     const std::atomic_uint16_t x_start(x);
-
     const std::atomic_uint16_t y_start(0);
-    if (kiwi_eating) { // look above and catch pinecone
-        Paint_DrawCircle(
+
+    switch (kiwi_status) {
+        case KiwiStatus::Eating: // pakupaku
+            Paint_DrawCircle(
             x_start.load(),
             y_start.load(),
             3,
@@ -125,32 +132,25 @@ void draw_kiwi(uint16_t x) { // TODO change to kiwistatus
             DOT_PIXEL_4X4,
             DRAW_FILL_EMPTY
         );
-    } else if (kiwi_status == wet) {
-        while (kiwi_status == wet) {
-            bool shivering = false;
-            if  (!shivering) {
-                Paint_DrawCircle(
+            break;
+
+        case KiwiStatus::Wet: // buruburu
+            Paint_DrawCircle(
                     x_start.load(),
                     y_start.load(),
                     3,
                     0x07E0,
                     DOT_PIXEL_4X4,
                     DRAW_FILL_EMPTY
-                );
-                shivering = true;
-            } else {
-                Paint_DrawCircle(
-                    x_start.load(),
-                    y_start.load(),
-                    3,
-                    0x07E0,
-                    DOT_PIXEL_4X4,
-                    DRAW_FILL_EMPTY
-                );
-                shivering = false;
-            }
-        }
-    } 
+                    );
+            kiwi_status = KiwiStatus::Idle;
+            break;
+
+        case KiwiStatus::Idle:
+          default:
+            break;
+
+    }
  }
 
 int LCD(std::vector<Pinecone> &pinecones) {
@@ -205,16 +205,18 @@ int LCD(std::vector<Pinecone> &pinecones) {
 
             if (DEV_Digital_Read(keyUp) == 0) {
                 screen_updated = true;
-                kiwi_x++
+                kiwi_status = KiwiStatus::Wet;
                 draw_kiwi(kiwi_x);
             }
             if (DEV_Digital_Read(keyDown) == 0) {
                 screen_updated = true;
-                kiwi_x++
-                draw_kiwi(1);
+                kiwi_x++;
+                draw_kiwi(kiwi_x);
             }
             if (DEV_Digital_Read(keyLeft) == 0) {
                 screen_updated = true;
+                kiwi_x++;
+                draw_kiwi(kiwi_x);
             }
             if (DEV_Digital_Read(keyRight) == 0) {
                 screen_updated = true;
@@ -231,8 +233,7 @@ int LCD(std::vector<Pinecone> &pinecones) {
                 screen_updated = true;
             }
             if (DEV_Digital_Read(keyX)) {
-                // confirmation_dialog() // TODO: make this function
-                // cut_pine(id, selected_y) // TODO: make this function
+                kiwi_status = KiwiStatus::Eating;
                 screen_updated = true;
             }
             if (DEV_Digital_Read(keyY)) {
