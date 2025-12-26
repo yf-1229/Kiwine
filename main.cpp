@@ -20,52 +20,69 @@ extern "C" {
 #include "hardware/adc.h"
 #include "Infrared.h"
 }
-
-// --- Global Mutex ---
-static mutex_t g_mutex;  // 追加
-
 // --- Parameters ---
 bool param_changed = false;
 bool game_status = true;
 bool screen_updated = false;
 
+// pinecones
+struct PineconeData {
+    uint16_t x = 0;
+    uint16_t y = 128;
+    bool active = false;  // true=表示、false=非表示
+};
+static mutex_t g_mutex;
+std::vector<PineconeData> g_pinecones;
+const size_t MAX_PINECONES = 100;  // 最大数
 
 // pine
 uint8_t pine_thickness = 1;
 uint8_t pine_height = 1;
 uint16_t pine_x = 64;
+
 // user
 uint8_t watered_times = 0;
 uint8_t burned_times = 0;
 uint8_t logged_times = 0;
 
+// kiwi
 enum class KiwiStatus : uint8_t {
     Idle,
     Eating,
     Wet
 };
+
 KiwiStatus kiwi_status = KiwiStatus::Idle;
 uint16_t kiwi_x = 0;
 
-class Pinecone {
-    public:
-    bool selected = false;
-    uint16_t x;
-
-public:
-    Pinecone(bool s, uint16_t x) : selected(s), x(x){}
-
-    uint16_t get_pinecone_parameter(uint8_t watered_times) {
-        // get_section_y() // TODO: from ydf
-        //return std::make_pair(y1, y2, y3);
-        return 0;
-    }
-};
-
-
-std::vector<Pinecone>* g_pinecones = nullptr;
-
 // --- Functions ---
+
+void init_pinecones() { // use this function is only for test
+    g_pinecones.reserve(MAX_PINECONES);
+
+    // 最初に5個を配置
+    g_pinecones.push_back({10, true});
+    g_pinecones.push_back({30, true});
+    g_pinecones.push_back({50, true});
+    g_pinecones.push_back({70, true});
+    g_pinecones.push_back({90, true});
+}
+void update_pinecones(uint16_t x) {
+    mutex_enter_blocking(&g_mutex);
+
+    for (auto& pc : g_pinecones) {
+        if (!pc.active) {
+            pc.x = x;
+            pc.active = true;
+            break;
+        }
+    }
+
+    mutex_exit(&g_mutex);
+}
+
+
+
 // update User and pine Parameter
 void core1_entry() {
     // ハンドシェイク
@@ -78,14 +95,9 @@ void core1_entry() {
         }
         
         mutex_enter_blocking(&g_mutex);
-        
-        if (g_pinecones) {
-            for (auto& pinecone : *g_pinecones) {
-                pinecone.get_pinecone_parameter(watered_times);
-            }
-        }
+
         // grow_pine() // TODO
-        param_changed = true
+        param_changed = true;
         
         mutex_exit(&g_mutex);
         
@@ -99,25 +111,24 @@ void core1_entry() {
     
 }
 
-void draw_pinecones(const std::vector<Pinecone>& pinecones) { // TODO: separate class draw_pine and set_pine
+void draw_pinecones() { // TODO: separate class draw_pine and set_pine
     for (const auto& pinecone : pinecones) {
         Paint_DrawRectangle(
         pinecone.x,
-        LCD_1IN3_HEIGHT,
+        pinecone_size_y,
         pinecone.x + 5,
-        LCD_1IN3_HEIGHT - 5,
+        pinecone_size_y - 5,
         0xF800,
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
     }
 }
 
 void draw_pine() {
-
     Paint_DrawRectangle(
         pine_x,
-        y_start.load(),
-        x_end.load() + 5,
-        y_end.load() + 5,
+        LCD_1IN3_HEIGHT,
+        pine_x + 5,
+        LCD_1IN3_HEIGHT - 5,
         0xF800,
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
 }
