@@ -207,19 +207,23 @@ int LCD(std::vector<Pinecone> &pinecones) {
                 screen_updated = true;
                 kiwi_status = KiwiStatus::Wet;
                 draw_kiwi(kiwi_x);
+                kiwi_status = KiwiStatus::Idle;
             }
             if (DEV_Digital_Read(keyDown) == 0) {
                 screen_updated = true;
-                kiwi_x++;
+                kiwi_status = KiwiStatus::Eating;
                 draw_kiwi(kiwi_x);
+                kiwi_status = KiwiStatus::Idle;
             }
             if (DEV_Digital_Read(keyLeft) == 0) {
                 screen_updated = true;
-                kiwi_x++;
+                kiwi_x --;
                 draw_kiwi(kiwi_x);
             }
             if (DEV_Digital_Read(keyRight) == 0) {
                 screen_updated = true;
+                kiwi_x ++;
+                draw_kiwi(kiwi_x)
             }
 
             // User Action
