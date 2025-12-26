@@ -8,6 +8,7 @@
 #include "pico/stdlib.h"
 #include "pico/aon_timer.h"
 #include "pico/multicore.h"
+#include "pico/mutex.h"
 #include "external/ydf/ydf_model.h"
 
 extern "C" {
@@ -20,9 +21,12 @@ extern "C" {
 #include "Infrared.h"
 }
 
+// --- Global Mutex ---
+static mutex_t g_mutex;  // 追加
+
 // --- Parameters ---
 bool param_changed = false;
-bool game_status = false;
+bool game_status = true;
 bool screen_updated = false;
 
 
@@ -72,45 +76,45 @@ void core1_entry() {
             printf("CORE1: Received");
             break;
         }
+        
+        mutex_enter_blocking(&g_mutex);
+        
         if (g_pinecones) {
             for (auto& pinecone : *g_pinecones) {
                 pinecone.get_pinecone_parameter(watered_times);
             }
         }
         // grow_pine() // TODO
-        param_changed = true;
+        param_changed = true
+        
+        mutex_exit(&g_mutex);
+        
+        sleep_ms(100);
     }
     printf("CORE1: IDLE.\r\n");
     multicore_fifo_push_blocking(EXIT_MSG);
     while (true) {
         tight_loop_contents();
     }
+    
 }
 
 void draw_pinecones(const std::vector<Pinecone>& pinecones) { // TODO: separate class draw_pine and set_pine
-    for (auto& pinecone : pinecones) {
-        const std::atomic_uint16_t x_start(pinecone.x);
-        const std::atomic_uint16_t x_end(pinecone.x + 2);
-        const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
-        const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - 5);
-
+    for (const auto& pinecone : pinecones) {
         Paint_DrawRectangle(
-        x_start.load(),
-        y_start.load(),
-        x_end.load() + 5,
-        y_end.load() + 5,
+        pinecone.x,
+        LCD_1IN3_HEIGHT,
+        pinecone.x + 5,
+        LCD_1IN3_HEIGHT - 5,
         0xF800,
         DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
     }
 }
 
 void draw_pine() {
-    const std::atomic_uint16_t x_start(pine_x);
-    const std::atomic_uint16_t x_end(pine_x+ 2);
-    const std::atomic_uint16_t y_start(LCD_1IN3.HEIGHT);
-    const std::atomic_uint16_t y_end(LCD_1IN3.HEIGHT - pine_height - 5);
+
     Paint_DrawRectangle(
-        x_start.load(),
+        pine_x,
         y_start.load(),
         x_end.load() + 5,
         y_end.load() + 5,
