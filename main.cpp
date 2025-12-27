@@ -33,7 +33,7 @@ struct PineconeData {
 };
 static mutex_t g_mutex;
 std::vector<PineconeData> g_pinecones;
-const size_t MAX_PINECONES = 100;  // 最大数
+constexpr size_t MAX_PINECONES = 100;  // 最大数
 
 // pine
 uint8_t pine_thickness = 1;
@@ -61,13 +61,13 @@ void init_pinecones() { // use this function is only for test
     g_pinecones.reserve(MAX_PINECONES);
 
     // 最初に5個を配置
-    g_pinecones.push_back({10, true});
-    g_pinecones.push_back({30, true});
-    g_pinecones.push_back({50, true});
-    g_pinecones.push_back({70, true});
-    g_pinecones.push_back({90, true});
+    g_pinecones.push_back({.x = 10, .active = true});
+    g_pinecones.push_back({.x = 30, .active = true});
+    g_pinecones.push_back({.x = 50, .active = true});
+    g_pinecones.push_back({.x = 70, .active = true});
+    g_pinecones.push_back({.x = 90, .active = true});
 }
-void update_pinecones(uint16_t x) {
+void update_pinecones(const uint16_t x) {
     mutex_enter_blocking(&g_mutex);
 
     for (auto& pc : g_pinecones) {
@@ -81,9 +81,36 @@ void update_pinecones(uint16_t x) {
     mutex_exit(&g_mutex);
 }
 
+void remove_pinecones(const uint16_t target_x, const uint8_t pineconeCollisionDistance = 5) {
+    mutex_enter_blocking(&g_mutex);
 
+    for (auto& pc : g_pinecones) {
+        if (pc.active && abs(static_cast<int>(pc.x) - static_cast<int>(target_x)) < pineconeCollisionDistance) {
+            pc.active = false;
+            break;
+        }
+    }
 
-// update User and pine Parameter
+    mutex_exit(&g_mutex);
+}
+
+void draw_pinecones(const uint8_t size = 1) {
+    mutex_enter_blocking(&g_mutex);
+    const std::vector<PineconeData> local_pinecones = g_pinecones;
+    mutex_exit(&g_mutex);
+    for (const auto& pc : local_pinecones) {
+        if (pc.active) {
+            Paint_DrawRectangle(
+                pc.x,
+                pc.y,
+                pc.x + size,
+                pc.y + size,
+                0xF800,
+                DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
+        }
+    }
+}
+
 void core1_entry() {
     // ハンドシェイク
     multicore_fifo_push_blocking(HELLO_MSG);
@@ -111,17 +138,6 @@ void core1_entry() {
     
 }
 
-void draw_pinecones() { // TODO: separate class draw_pine and set_pine
-    for (const auto& pinecone : pinecones) {
-        Paint_DrawRectangle(
-        pinecone.x,
-        pinecone_size_y,
-        pinecone.x + 5,
-        pinecone_size_y - 5,
-        0xF800,
-        DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
-    }
-}
 
 void draw_pine() {
     Paint_DrawRectangle(
@@ -138,7 +154,7 @@ void draw_kiwi(uint16_t x) {
     const std::atomic_uint16_t y_start(0);
 
     switch (kiwi_status) {
-        case KiwiStatus::Eating: // pakupaku
+        case KiwiStatus::Eating:
             Paint_DrawCircle(
             x_start.load(),
             y_start.load(),
@@ -149,7 +165,7 @@ void draw_kiwi(uint16_t x) {
         );
             break;
 
-        case KiwiStatus::Wet: // buruburu
+        case KiwiStatus::Wet:
             Paint_DrawCircle(
                     x_start.load(),
                     y_start.load(),
@@ -168,7 +184,7 @@ void draw_kiwi(uint16_t x) {
     }
  }
 
-int LCD(std::vector<Pinecone> &pinecones) {
+int LCD() {
     DEV_Delay_ms(100);
     printf("LCD_1in3_test \r\n");
     if (DEV_Module_Init() != 0) {
@@ -215,7 +231,7 @@ int LCD(std::vector<Pinecone> &pinecones) {
             elapsed_time++;
             // --- Draw Screen ---
             draw_pine();
-            draw_pinecones(pinecones);
+            draw_pinecones();
             // TODO: replace to core1?
 
             if (DEV_Digital_Read(keyUp) == 0) {
@@ -238,7 +254,7 @@ int LCD(std::vector<Pinecone> &pinecones) {
             if (DEV_Digital_Read(keyRight) == 0) {
                 screen_updated = true;
                 kiwi_x ++;
-                draw_kiwi(kiwi_x)
+                draw_kiwi(kiwi_x);
             }
 
             // User Action
@@ -309,16 +325,7 @@ int main() {
         printf("Waiting CORE1.\r\n");
     }
 
-    std::vector<Pinecone> pinecones;
-    pinecones.emplace_back(false, 10);
-    pinecones.emplace_back(false, 20);
-    pinecones.emplace_back(false, 30);
-    pinecones.emplace_back(false, 40);
-    pinecones.emplace_back(false, 50);
-
-    g_pinecones = &pinecones;
-
-    LCD(pinecones); // core1での更新待つ？
+    LCD(); // core1での更新待つ？
 
     return 0;
 }
