@@ -152,7 +152,7 @@ void draw_pine() {
         DOT_PIXEL_4X4, DRAW_FILL_FULL);
 }
 
-void draw_kiwi(uint16_t x) {
+void draw_kiwi(const uint16_t x) {
     const std::atomic_uint16_t x_start(x);
     const std::atomic_uint16_t y_start(0);
 
