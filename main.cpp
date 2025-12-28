@@ -28,7 +28,6 @@ bool screen_updated = false;
 // pinecones
 struct PineconeData {
     uint16_t x = 0;
-    uint16_t y = 128;
     bool active = false;  // true=表示、false=非表示
 };
 static mutex_t g_mutex;
@@ -37,8 +36,8 @@ constexpr size_t MAX_PINECONES = 100;  // 最大数
 
 // pine
 uint8_t pine_thickness = 32;
-uint8_t pine_height = 120;
-uint16_t pine_x = 104;
+uint8_t pine_height = 10;
+uint8_t pine_x = 104;
 
 // user
 uint8_t watered_times = 0;
@@ -56,7 +55,35 @@ KiwiStatus kiwi_status = KiwiStatus::Idle;
 uint16_t kiwi_x = 0;
 
 // --- Functions ---
+void core1_entry() {
+    // ハンドシェイク
+    multicore_fifo_push_blocking(HELLO_MSG);
+    while (true) {
+        uint32_t rcvDat = multicore_fifo_pop_blocking();
+        if (rcvDat == EXIT_LOOP) {
+            printf("CORE1: Received");
+            break;
+        }
 
+        mutex_enter_blocking(&g_mutex);
+
+        // grow_pine() // TODO
+
+        param_changed = true;
+
+        mutex_exit(&g_mutex);
+
+        sleep_ms(100);
+    }
+    printf("CORE1: IDLE.\r\n");
+    multicore_fifo_push_blocking(EXIT_MSG);
+    while (true) {
+        tight_loop_contents();
+    }
+
+}
+
+// Pinecone functions --->
 void init_pinecones() { // use this function is only for test
     g_pinecones.reserve(MAX_PINECONES);
 
@@ -96,6 +123,7 @@ void remove_pinecones(const uint16_t target_x, const uint8_t pineconeCollisionDi
     mutex_exit(&g_mutex);
 }
 
+// Draw functions --->
 void draw_pinecones(const uint8_t size = 1) {
     mutex_enter_blocking(&g_mutex);
     const std::vector<PineconeData> local_pinecones = g_pinecones;
@@ -104,50 +132,21 @@ void draw_pinecones(const uint8_t size = 1) {
         if (pc.active) {
             Paint_DrawRectangle(
                 pc.x,
-                pc.y,
+                LCD_1IN3_HEIGHT - size,
                 pc.x + size,
-                pc.y + size,
+                LCD_1IN3_HEIGHT,
                 BROWN,
                 DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
         }
     }
 }
 
-void core1_entry() {
-    // ハンドシェイク
-    multicore_fifo_push_blocking(HELLO_MSG);
-    while (true) {
-        uint32_t rcvDat = multicore_fifo_pop_blocking();
-        if (rcvDat == EXIT_LOOP) {
-            printf("CORE1: Received");
-            break;
-        }
-        
-        mutex_enter_blocking(&g_mutex);
-
-        // grow_pine() // TODO
-        pine_height++;  // 例：松を成長させる
-        param_changed = true;
-        
-        mutex_exit(&g_mutex);
-        
-        sleep_ms(100);
-    }
-    printf("CORE1: IDLE.\r\n");
-    multicore_fifo_push_blocking(EXIT_MSG);
-    while (true) {
-        tight_loop_contents();
-    }
-    
-}
-
-
 void draw_pine() {
     Paint_DrawRectangle(
         pine_x,
-        LCD_1IN3_HEIGHT,
-        pine_x + pine_thickness,
         LCD_1IN3_HEIGHT - pine_height,
+        pine_x + pine_thickness,
+        LCD_1IN3_HEIGHT,
         BLACK,
         DOT_PIXEL_4X4, DRAW_FILL_FULL);
 }
@@ -223,8 +222,7 @@ int LCD() {
     SET_Infrared_PIN(keyCtrl);
 
     // 初期描画
-    bool screen_updated = false;
-    uint16_t elapsed_time = 0;
+    screen_updated = false;
     LCD_1IN3_Display(BlackImage);
     uint32_t core1_msg = 0;
 
