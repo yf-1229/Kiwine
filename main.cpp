@@ -66,6 +66,8 @@ void init_pinecones() { // use this function is only for test
     g_pinecones.push_back({.x = 50, .active = true});
     g_pinecones.push_back({.x = 70, .active = true});
     g_pinecones.push_back({.x = 90, .active = true});
+
+    param_changed = true;
 }
 void update_pinecones(const uint16_t x) {
     mutex_enter_blocking(&g_mutex);
@@ -105,7 +107,7 @@ void draw_pinecones(const uint8_t size = 1) {
                 pc.y,
                 pc.x + size,
                 pc.y + size,
-                0xF800,
+                BROWN,
                 DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
         }
     }
@@ -124,6 +126,7 @@ void core1_entry() {
         mutex_enter_blocking(&g_mutex);
 
         // grow_pine() // TODO
+        pine_height++;  // 例：松を成長させる
         param_changed = true;
         
         mutex_exit(&g_mutex);
@@ -143,10 +146,10 @@ void draw_pine() {
     Paint_DrawRectangle(
         pine_x,
         LCD_1IN3_HEIGHT,
-        pine_x + 5,
-        LCD_1IN3_HEIGHT - 5,
-        0xF800,
-        DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
+        pine_x + pine_thickness,
+        LCD_1IN3_HEIGHT - pine_height,
+        BLACK,
+        DOT_PIXEL_4X4, DRAW_FILL_FULL);
 }
 
 void draw_kiwi(uint16_t x) {
@@ -155,11 +158,11 @@ void draw_kiwi(uint16_t x) {
 
     switch (kiwi_status) {
         case KiwiStatus::Eating:
-            Paint_DrawCircle(
+            Paint_DrawCircle( // TODO : make kiwi's bitmap
             x_start.load(),
             y_start.load(),
             3,
-            0x07E0,
+            GREEN,
             DOT_PIXEL_4X4,
             DRAW_FILL_EMPTY
         );
@@ -170,7 +173,7 @@ void draw_kiwi(uint16_t x) {
                     x_start.load(),
                     y_start.load(),
                     3,
-                    0x07E0,
+                    GREEN,
                     DOT_PIXEL_4X4,
                     DRAW_FILL_EMPTY
                     );
@@ -225,67 +228,71 @@ int LCD() {
     LCD_1IN3_Display(BlackImage);
     uint32_t core1_msg = 0;
 
-    while (true) {
+    while (game_status) {
         screen_updated = false;
-        while (true) {
-            elapsed_time++;
-            // --- Draw Screen ---
+
+        if (DEV_Digital_Read(keyUp) == 0) {
+            kiwi_status = KiwiStatus::Wet;
+            draw_kiwi(kiwi_x);
+            kiwi_status = KiwiStatus::Idle;
+
+            screen_updated = true;
+        }
+        if (DEV_Digital_Read(keyDown) == 0) {
+            kiwi_status = KiwiStatus::Eating;
+            draw_kiwi(kiwi_x);
+            remove_pinecones(kiwi_x);
+            kiwi_status = KiwiStatus::Idle;
+
+            screen_updated = true;
+            sleep_ms(200);
+        }
+        if (DEV_Digital_Read(keyLeft) == 0) {
+            kiwi_x --;
+            draw_kiwi(kiwi_x);
+
+            screen_updated = true;
+            sleep_ms(200);
+        }
+        if (DEV_Digital_Read(keyRight) == 0) {
+            kiwi_x ++;
+            draw_kiwi(kiwi_x);
+
+            screen_updated = true;
+            sleep_ms(200);
+        }
+
+        // User Action
+        if (DEV_Digital_Read(keyA)) {
+            // show_statics() // TODO: make this function
+            screen_updated = true;
+        }
+        if (DEV_Digital_Read(keyB)) {
+            game_status = false;
+            screen_updated = true;
+        }
+        if (DEV_Digital_Read(keyX)) {
+            kiwi_status = KiwiStatus::Eating;
+            screen_updated = true;
+        }
+        if (DEV_Digital_Read(keyY)) {
+            // water_pine() // TODO: make this function
+            watered_times++;
+            screen_updated = true;
+        }
+
+        if (screen_updated || param_changed) {
+            Paint_Clear(WHITE);
             draw_pine();
-            draw_pinecones();
-            // TODO: replace to core1?
+            draw_pinecones();  // アクティブなもののみ描画
+            draw_kiwi(kiwi_x);
+            LCD_1IN3_Display(BlackImage);
+            param_changed = false;
+        }
 
-            if (DEV_Digital_Read(keyUp) == 0) {
-                screen_updated = true;
-                kiwi_status = KiwiStatus::Wet;
-                draw_kiwi(kiwi_x);
-                kiwi_status = KiwiStatus::Idle;
-            }
-            if (DEV_Digital_Read(keyDown) == 0) {
-                screen_updated = true;
-                kiwi_status = KiwiStatus::Eating;
-                draw_kiwi(kiwi_x);
-                kiwi_status = KiwiStatus::Idle;
-            }
-            if (DEV_Digital_Read(keyLeft) == 0) {
-                screen_updated = true;
-                kiwi_x --;
-                draw_kiwi(kiwi_x);
-            }
-            if (DEV_Digital_Read(keyRight) == 0) {
-                screen_updated = true;
-                kiwi_x ++;
-                draw_kiwi(kiwi_x);
-            }
-
-            // User Action
-            if (DEV_Digital_Read(keyA)) {
-                // show_statics() // TODO: make this function
-                screen_updated = true;
-            }
-            if (DEV_Digital_Read(keyB)) {
-                // confirmation_dialog() // TODO: make this function
-                // burn_pine(id) // TODO: make this function
-                screen_updated = true;
-            }
-            if (DEV_Digital_Read(keyX)) {
-                kiwi_status = KiwiStatus::Eating;
-                screen_updated = true;
-            }
-            if (DEV_Digital_Read(keyY)) {
-                // water_pine() // TODO: make this function
-                watered_times++;
-                screen_updated = true;
-            }
-
-            // - Refresh Screen -
-            if (screen_updated || param_changed) {
-                LCD_1IN3_Display(BlackImage);
-            }
-
-            if (!game_status) {
-                multicore_fifo_push_blocking(EXIT_LOOP);
-                break;
-            }
+        if (!game_status) {
+            multicore_fifo_push_blocking(EXIT_LOOP);
+            break;
         }
 
         // Core1からのメッセージ受信
@@ -313,6 +320,10 @@ int LCD() {
 int main() {
     stdio_init_all();
     printf("CORE0: start.\r\n");
+
+    mutex_init(&g_mutex);
+    init_pinecones();
+
     multicore_launch_core1(core1_entry);
     uint32_t core1_msg = multicore_fifo_pop_blocking();
     if (core1_msg != HELLO_MSG) {
@@ -325,6 +336,7 @@ int main() {
         printf("Waiting CORE1.\r\n");
     }
 
+    game_status = true;
     LCD(); // core1での更新待つ？
 
     return 0;
