@@ -36,9 +36,9 @@ std::vector<PineconeData> g_pinecones;
 constexpr size_t MAX_PINECONES = 100;  // 最大数
 
 // pine
-uint8_t pine_thickness = 1;
-uint8_t pine_height = 1;
-uint16_t pine_x = 64;
+uint8_t pine_thickness = 32;
+uint8_t pine_height = 120;
+uint16_t pine_x = 104;
 
 // user
 uint8_t watered_times = 0;
