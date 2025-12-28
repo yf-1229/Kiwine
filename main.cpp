@@ -3,7 +3,6 @@
 #include "main.h"
 #include <atomic>
 #include <random>
-#include <iostream>
 #include <mutex>
 #include "pico/stdlib.h"
 #include "pico/aon_timer.h"
@@ -16,7 +15,6 @@ extern "C" {
 #include "LCD_1in3.h"
 #include "external/Config/DEV_Config.h"
 #include "GUI_Paint.h"
-#include "external/Fonts/fonts.h"
 #include "hardware/adc.h"
 #include "Infrared.h"
 }
