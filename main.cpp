@@ -3,7 +3,6 @@
 #include "main.h"
 #include <atomic>
 #include <random>
-#include <mutex>
 #include "pico/stdlib.h"
 #include "pico/aon_timer.h"
 #include "pico/multicore.h"
@@ -11,12 +10,11 @@
 #include "external/ydf/ydf_model.h"
 
 extern "C" {
-#include <stdio.h>
+#include "GUI_Paint.h"
+#include "Infrared.h"
 #include "LCD_1in3.h"
 #include "external/Config/DEV_Config.h"
-#include "GUI_Paint.h"
-#include "hardware/adc.h"
-#include "Infrared.h"
+#include <stdio.h>
 }
 // --- Parameters ---
 bool param_changed = false;
