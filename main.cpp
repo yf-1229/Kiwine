@@ -47,7 +47,7 @@ enum class KiwiStatus : uint8_t {
     Wet
 };
 
-KiwiStatus kiwi_status = KiwiStatus::Idle;
+KiwiStatus kiwi_status = KiwiStatus::Idle; // TODO make Idle
 uint16_t kiwi_x = 0;
 
 // --- Functions ---
