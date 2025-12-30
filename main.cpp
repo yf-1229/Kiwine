@@ -32,7 +32,7 @@ constexpr size_t MAX_PINECONES = 100;  // 最大数
 
 // pine
 uint8_t pine_thickness = 32;
-uint8_t pine_height = 10;
+uint8_t pine_height = 30;
 uint8_t pine_x = 104;
 
 // user
