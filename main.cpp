@@ -16,9 +16,9 @@ extern "C" {
 #include "external/Config/DEV_Config.h"
 #include <stdio.h>
 }
-// --- Parameters ---
+// --- Parameters --
+bool game_status = false;
 bool param_changed = false;
-bool game_status = true;
 bool screen_updated = false;
 
 // pinecones
@@ -32,7 +32,7 @@ constexpr size_t MAX_PINECONES = 100;  // 最大数
 
 // pine
 uint8_t pine_thickness = 32;
-uint8_t pine_height = 30;
+uint8_t pine_height = 50;
 uint8_t pine_x = 104;
 
 // user
@@ -48,7 +48,8 @@ enum class KiwiStatus : uint8_t {
 };
 
 KiwiStatus kiwi_status = KiwiStatus::Idle; // TODO make Idle
-uint16_t kiwi_x = 0;
+uint16_t kiwi_x = 5;
+uint16_t kiwi_y = 30;
 
 // --- Functions ---
 void core1_entry() {
@@ -147,38 +148,40 @@ void draw_pine() {
         DOT_PIXEL_4X4, DRAW_FILL_FULL);
 }
 
-void draw_kiwi(const uint16_t x) {
-    const std::atomic_uint16_t x_start(x);
-    const std::atomic_uint16_t y_start(0);
-
+void draw_kiwi() {
     switch (kiwi_status) {
         case KiwiStatus::Eating:
             Paint_DrawCircle( // TODO : make kiwi's bitmap
-            x_start.load(),
-            y_start.load(),
+            kiwi_x,
+            kiwi_y,
             3,
-            GREEN,
+            RED,
             DOT_PIXEL_4X4,
             DRAW_FILL_EMPTY
-        );
-            break;
+            );
+        break;
 
         case KiwiStatus::Wet:
             Paint_DrawCircle(
-                    x_start.load(),
-                    y_start.load(),
+                    kiwi_x,
+                    kiwi_y,
                     3,
-                    GREEN,
+                    BLUE,
                     DOT_PIXEL_4X4,
                     DRAW_FILL_EMPTY
-                    );
-            kiwi_status = KiwiStatus::Idle;
-            break;
+             );
+        break;
 
         case KiwiStatus::Idle:
           default:
-            break;
-
+          Paint_DrawCircle(
+           kiwi_x,
+           kiwi_y,
+           3,
+           GREEN,
+           DOT_PIXEL_4X4,
+           DRAW_FILL_EMPTY
+          );
     }
  }
 
@@ -218,23 +221,23 @@ int LCD() {
     SET_Infrared_PIN(keyCtrl);
 
     // 初期描画
-    screen_updated = false;
     LCD_1IN3_Display(BlackImage);
     uint32_t core1_msg = 0;
 
     while (game_status) {
         screen_updated = false;
+        param_changed = false;
 
         if (DEV_Digital_Read(keyUp) == 0) {
+            printf("Button Pressed!"); // for Debug
             kiwi_status = KiwiStatus::Wet;
-            draw_kiwi(kiwi_x);
             kiwi_status = KiwiStatus::Idle;
 
             screen_updated = true;
         }
         if (DEV_Digital_Read(keyDown) == 0) {
+            printf("Button Pressed!"); // for Debug
             kiwi_status = KiwiStatus::Eating;
-            draw_kiwi(kiwi_x);
             remove_pinecones(kiwi_x);
             kiwi_status = KiwiStatus::Idle;
 
@@ -242,23 +245,26 @@ int LCD() {
             sleep_ms(200);
         }
         if (DEV_Digital_Read(keyLeft) == 0) {
-            kiwi_x --;
-            draw_kiwi(kiwi_x);
-
-            screen_updated = true;
+            printf("Button Pressed!"); // for Debug
+            if (0 < kiwi_x < LCD_1IN3_HEIGHT) {
+                kiwi_x --;
+            }
+            param_changed = true;
             sleep_ms(200);
         }
         if (DEV_Digital_Read(keyRight) == 0) {
-            kiwi_x ++;
-            draw_kiwi(kiwi_x);
-
-            screen_updated = true;
+            printf("Button Pressed!"); // for Debug
+            if (0 < kiwi_x < LCD_1IN3_HEIGHT) {
+            	kiwi_x ++;
+            }
+            param_changed = true;
             sleep_ms(200);
         }
 
         // User Action
         if (DEV_Digital_Read(keyA)) {
             // show_statics() // TODO: make this function
+            pine_height = 10;
             screen_updated = true;
         }
         if (DEV_Digital_Read(keyB)) {
@@ -276,11 +282,13 @@ int LCD() {
         }
 
         if (screen_updated || param_changed) {
+            printf("Screen Clear!");
             Paint_Clear(WHITE);
             draw_pine();
             draw_pinecones();  // アクティブなもののみ描画
-            draw_kiwi(kiwi_x);
+            draw_kiwi();
             LCD_1IN3_Display(BlackImage);
+            screen_updated = false;
             param_changed = false;
         }
 
