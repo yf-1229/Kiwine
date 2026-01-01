@@ -18,7 +18,6 @@ extern "C" {
 }
 // --- Parameters --
 bool game_status = false;
-bool param_changed = false;
 bool screen_updated = false;
 
 // pinecones
@@ -62,13 +61,15 @@ void core1_entry() {
             break;
         }
 
-        mutex_enter_blocking(&g_mutex);
+        multicore_fifo_push_blocking(HELLO_MSG);
+
+        // mutex_enter_blocking(&g_mutex);
 
         // grow_pine() // TODO
 
-        param_changed = true;
+        // param_changed = true;
 
-        mutex_exit(&g_mutex);
+        // mutex_exit(&g_mutex);
 
         sleep_ms(100);
     }
@@ -91,7 +92,7 @@ void init_pinecones() { // use this function is only for test
     g_pinecones.push_back({.x = 70, .active = true});
     g_pinecones.push_back({.x = 90, .active = true});
 
-    param_changed = true;
+    screen_updated = true;
 }
 void update_pinecones(const uint16_t x) {
     mutex_enter_blocking(&g_mutex);
@@ -149,31 +150,6 @@ void draw_pine() {
 }
 
 void draw_kiwi() {
-    switch (kiwi_status) {
-        case KiwiStatus::Eating:
-            Paint_DrawCircle( // TODO : make kiwi's bitmap
-            kiwi_x,
-            kiwi_y,
-            3,
-            RED,
-            DOT_PIXEL_4X4,
-            DRAW_FILL_EMPTY
-            );
-        break;
-
-        case KiwiStatus::Wet:
-            Paint_DrawCircle(
-                    kiwi_x,
-                    kiwi_y,
-                    3,
-                    BLUE,
-                    DOT_PIXEL_4X4,
-                    DRAW_FILL_EMPTY
-             );
-        break;
-
-        case KiwiStatus::Idle:
-          default:
           Paint_DrawCircle(
            kiwi_x,
            kiwi_y,
@@ -182,7 +158,6 @@ void draw_kiwi() {
            DOT_PIXEL_4X4,
            DRAW_FILL_EMPTY
           );
-    }
  }
 
 int LCD() {
@@ -226,7 +201,6 @@ int LCD() {
 
     while (game_status) {
         screen_updated = false;
-        param_changed = false;
 
         if (DEV_Digital_Read(keyUp) == 0) {
             printf("Button Pressed!"); // for Debug
@@ -249,7 +223,7 @@ int LCD() {
             if (0 < kiwi_x < LCD_1IN3_HEIGHT) {
                 kiwi_x --;
             }
-            param_changed = true;
+            screen_updated = true;
             sleep_ms(200);
         }
         if (DEV_Digital_Read(keyRight) == 0) {
@@ -257,7 +231,7 @@ int LCD() {
             if (0 < kiwi_x < LCD_1IN3_HEIGHT) {
             	kiwi_x ++;
             }
-            param_changed = true;
+            screen_updated = true;
             sleep_ms(200);
         }
 
@@ -268,7 +242,6 @@ int LCD() {
             screen_updated = true;
         }
         if (DEV_Digital_Read(keyB)) {
-            game_status = false;
             screen_updated = true;
         }
         if (DEV_Digital_Read(keyX)) {
@@ -281,16 +254,21 @@ int LCD() {
             screen_updated = true;
         }
 
-        if (screen_updated || param_changed) {
-            printf("Screen Clear!");
-            Paint_Clear(WHITE);
-            draw_pine();
-            draw_pinecones();  // アクティブなもののみ描画
-            draw_kiwi();
-            LCD_1IN3_Display(BlackImage);
-            screen_updated = false;
-            param_changed = false;
+        bool needs_update = screen_updated;
+        if (needs_update) {
+        	mutex_enter_blocking(&g_mutex);
+        	screen_updated = false;
+        	needs_update = false;
+        	mutex_exit(&g_mutex);
+
+        	printf("Screen Clear!");
+        	Paint_Clear(WHITE);
         }
+
+        draw_pine();
+        draw_pinecones();  // アクティブなもののみ描画
+        draw_kiwi();
+        LCD_1IN3_Display(BlackImage);
 
         if (!game_status) {
             multicore_fifo_push_blocking(EXIT_LOOP);
