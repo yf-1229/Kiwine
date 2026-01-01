@@ -199,6 +199,7 @@ int LCD() {
     LCD_1IN3_Display(BlackImage);
     uint32_t core1_msg = 0;
 
+    while (true) {
     while (game_status) {
         screen_updated = false;
 
@@ -254,11 +255,9 @@ int LCD() {
             screen_updated = true;
         }
 
-        bool needs_update = screen_updated;
-        if (needs_update) {
+        if (screen_updated) {
         	mutex_enter_blocking(&g_mutex);
         	screen_updated = false;
-        	needs_update = false;
         	mutex_exit(&g_mutex);
 
         	printf("Screen Clear!");
@@ -268,6 +267,7 @@ int LCD() {
         draw_pine();
         draw_pinecones();  // アクティブなもののみ描画
         draw_kiwi();
+
         LCD_1IN3_Display(BlackImage);
 
         if (!game_status) {
@@ -280,12 +280,14 @@ int LCD() {
         if (core1_msg != EXIT_MSG) {
             printf("Unexpected CORE1 EXIT MESSAGE.\r\n");
             return 1;
+         }
+
         }
+
         multicore_reset_core1();
         LCD_1IN3_Display(BlackImage);
         sleep_ms(16);  // 約60fps
         puts("Off");
-        break;
     }
 
     free(BlackImage);
