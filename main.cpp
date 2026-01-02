@@ -20,7 +20,7 @@ extern "C" {
 bool game_status = true;
 
 // LCD refresh rate
-constexpr uint16_t LCD_REFRESH_DELAY_MS = 50;  // 約20 FPS
+constexpr uint16_t LCD_REFRESH_DELAY_MS = 50;  // ~20 FPS
 
 // pinecones
 struct PineconeData {
@@ -257,7 +257,6 @@ int LCD() {
         draw_pine(pine_height);
         draw_pinecones();  // アクティブなもののみ描画
         LCD_1IN3_Display(BlackImage);
-        
         sleep_ms(LCD_REFRESH_DELAY_MS);
     }
 
