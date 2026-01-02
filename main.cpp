@@ -234,7 +234,6 @@ int LCD() {
             // show_statics() // TODO: make this function
             pine_height = 10;
             Paint_Clear(WHITE); // for debug
-            continue;
         }
         if (DEV_Digital_Read(keyB) == 0) {
         }
