@@ -17,8 +17,7 @@ extern "C" {
 #include <stdio.h>
 }
 // --- Parameters --
-bool game_status = false;
-bool screen_updated = false;
+bool game_status = true;
 
 // pinecones
 struct PineconeData {
@@ -30,9 +29,9 @@ std::vector<PineconeData> g_pinecones;
 constexpr size_t MAX_PINECONES = 100;  // 最大数
 
 // pine
-uint8_t pine_thickness = 32;
-uint8_t pine_height = 50;
-uint8_t pine_x = 104;
+uint16_t pine_thickness = 32;
+uint16_t pine_height = 50;
+uint16_t pine_x = 104;
 
 // user
 uint8_t watered_times = 0;
@@ -67,7 +66,6 @@ void core1_entry() {
 
         // grow_pine() // TODO
 
-        // param_changed = true;
 
         // mutex_exit(&g_mutex);
 
@@ -91,9 +89,8 @@ void init_pinecones() { // use this function is only for test
     g_pinecones.push_back({.x = 50, .active = true});
     g_pinecones.push_back({.x = 70, .active = true});
     g_pinecones.push_back({.x = 90, .active = true});
-
-    screen_updated = true;
 }
+
 void update_pinecones(const uint16_t x) {
     mutex_enter_blocking(&g_mutex);
 
@@ -139,19 +136,19 @@ void draw_pinecones(const uint8_t size = 1) {
     }
 }
 
-void draw_pine() {
+void draw_pine(uint16_t height) {
     Paint_DrawRectangle(
         pine_x,
-        LCD_1IN3_HEIGHT - pine_height,
+        LCD_1IN3_HEIGHT - height,
         pine_x + pine_thickness,
         LCD_1IN3_HEIGHT,
         BLACK,
         DOT_PIXEL_4X4, DRAW_FILL_FULL);
 }
 
-void draw_kiwi() {
+void draw_kiwi(uint16_t x) {
           Paint_DrawCircle(
-           kiwi_x,
+           x,
            kiwi_y,
            3,
            GREEN,
@@ -159,6 +156,7 @@ void draw_kiwi() {
            DRAW_FILL_EMPTY
           );
  }
+
 
 int LCD() {
     DEV_Delay_ms(100);
@@ -199,18 +197,12 @@ int LCD() {
     LCD_1IN3_Display(BlackImage);
     uint32_t core1_msg = 0;
     game_status = true;
-    screen_updated = false;
 
-    while (game_status) {
-        while (!screen_updated) {
-
+    while (1) {
         if (DEV_Digital_Read(keyUp) == 0) {
             printf("Button Pressed!"); // for Debug
             kiwi_status = KiwiStatus::Wet;
             kiwi_status = KiwiStatus::Idle;
-
-            screen_updated = true;
-            break;
         }
         if (DEV_Digital_Read(keyDown) == 0) {
             printf("Button Pressed!"); // for Debug
@@ -218,67 +210,56 @@ int LCD() {
             remove_pinecones(kiwi_x);
             kiwi_status = KiwiStatus::Idle;
 
-            screen_updated = true;
             sleep_ms(200);
-            break;
         }
         if (DEV_Digital_Read(keyLeft) == 0) {
             printf("Button Pressed!"); // for Debug
-            if (0 < kiwi_x < LCD_1IN3_HEIGHT) {
+            if (kiwi_x < LCD_1IN3_HEIGHT) {
                 kiwi_x --;
             }
-            screen_updated = true;
+
             sleep_ms(200);
-            break;
         }
         if (DEV_Digital_Read(keyRight) == 0) {
             printf("Button Pressed!"); // for Debug
             if (kiwi_x < LCD_1IN3_HEIGHT) {
             	kiwi_x ++;
             }
-            screen_updated = true;
+
             sleep_ms(200);
-            break;
         }
 
         // User Action
         if (DEV_Digital_Read(keyA) == 0 ) {
             // show_statics() // TODO: make this function
             pine_height = 10;
-            screen_updated = true;
-            break;
+            Paint_Clear(WHITE); // for debug
+            continue;
         }
         if (DEV_Digital_Read(keyB) == 0) {
-            screen_updated = true;
-            break;
         }
         if (DEV_Digital_Read(keyX) == 0) {
             kiwi_status = KiwiStatus::Eating;
-            screen_updated = true;
-            break;
         }
         if (DEV_Digital_Read(keyY) == 0) {
             // water_pine() // TODO: make this function
             watered_times++;
-            screen_updated = true;
-            break;
         }
 
-        if (!game_status) {
+        if (kiwi_x == 120) {
             multicore_fifo_push_blocking(EXIT_LOOP);
         }
-      
-      }
 
       Paint_Clear(WHITE);
-      draw_kiwi();
-      draw_pine();
+      draw_kiwi(kiwi_x);
+      draw_pine(pine_height);
       draw_pinecones();  // アクティブなもののみ描画
       LCD_1IN3_Display(BlackImage);
-      screen_updated = false;
+      continue;
     }
 
     multicore_reset_core1();
+    Paint_Clear(WHITE);
     free(BlackImage);
     BlackImage = NULL;
     DEV_Module_Exit();
@@ -307,8 +288,12 @@ int main() {
         printf("Waiting CORE1.\r\n");
     }
 
-    game_status = true;
-    LCD(); // core1での更新待つ？
+    if (LCD() == 0) {
+        printf("LCD failed\n");
+    }
+    while (true) {
+        sleep_ms(1000);
+    }
 
     return 0;
 }
