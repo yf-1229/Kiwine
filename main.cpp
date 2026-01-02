@@ -19,6 +19,9 @@ extern "C" {
 // --- Parameters --
 bool game_status = true;
 
+// LCD refresh rate
+constexpr uint16_t LCD_REFRESH_DELAY_MS = 50;  // ~20 FPS
+
 // pinecones
 struct PineconeData {
     uint16_t x = 0;
@@ -234,7 +237,6 @@ int LCD() {
             // show_statics() // TODO: make this function
             pine_height = 10;
             Paint_Clear(WHITE); // for debug
-            continue;
         }
         if (DEV_Digital_Read(keyB) == 0) {
         }
@@ -250,12 +252,12 @@ int LCD() {
             multicore_fifo_push_blocking(EXIT_LOOP);
         }
 
-      Paint_Clear(WHITE);
-      draw_kiwi(kiwi_x);
-      draw_pine(pine_height);
-      draw_pinecones();  // アクティブなもののみ描画
-      LCD_1IN3_Display(BlackImage);
-      continue;
+        Paint_Clear(WHITE);
+        draw_kiwi(kiwi_x);
+        draw_pine(pine_height);
+        draw_pinecones();  // アクティブなもののみ描画
+        LCD_1IN3_Display(BlackImage);
+        sleep_ms(LCD_REFRESH_DELAY_MS);
     }
 
     multicore_reset_core1();
