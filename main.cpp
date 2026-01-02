@@ -263,7 +263,7 @@ int LCD() {
         	printf("Screen Clear!");
         	Paint_Clear(WHITE);
         }
-        
+
         if (!game_status) {
             multicore_fifo_push_blocking(EXIT_LOOP);
             break;
@@ -274,21 +274,10 @@ int LCD() {
         draw_kiwi();
 
         LCD_1IN3_Display(BlackImage);
-
-        // Core1からのメッセージ受信
-        core1_msg = multicore_fifo_pop_blocking();
-        if (core1_msg != EXIT_MSG) {
-            printf("Unexpected CORE1 EXIT MESSAGE.\r\n");
-            return 1;
-         }
-
-        
-        multicore_reset_core1();
-        LCD_1IN3_Display(BlackImage);
-        sleep_ms(16);  // 約60fps
-        puts("Off");
+     }
     }
 
+    multicore_reset_core1();
     free(BlackImage);
     BlackImage = NULL;
     DEV_Module_Exit();
