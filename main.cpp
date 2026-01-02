@@ -277,12 +277,11 @@ int LCD() {
       }
 
       Paint_Clear(WHITE);
-      screen_updated = false;
       draw_kiwi();
       draw_pine();
       draw_pinecones();  // アクティブなもののみ描画
       LCD_1IN3_Display(BlackImage);
-
+      screen_updated = false;
     }
 
     multicore_reset_core1();
