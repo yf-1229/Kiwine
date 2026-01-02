@@ -249,11 +249,11 @@ int LCD() {
             multicore_fifo_push_blocking(EXIT_LOOP);
         }
 
-      Paint_Clear(WHITE);
-      draw_kiwi(kiwi_x);
-      draw_pine(pine_height);
-      draw_pinecones();  // アクティブなもののみ描画
-      LCD_1IN3_Display(BlackImage);
+        Paint_Clear(WHITE);
+        draw_kiwi(kiwi_x);
+        draw_pine(pine_height);
+        draw_pinecones();  // アクティブなもののみ描画
+        LCD_1IN3_Display(BlackImage);
     }
 
     multicore_reset_core1();
