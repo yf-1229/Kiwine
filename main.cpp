@@ -254,7 +254,6 @@ int LCD() {
       draw_pine(pine_height);
       draw_pinecones();  // アクティブなもののみ描画
       LCD_1IN3_Display(BlackImage);
-      continue;
     }
 
     multicore_reset_core1();
