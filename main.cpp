@@ -266,7 +266,7 @@ int LCD() {
 
         if (!game_status) {
             multicore_fifo_push_blocking(EXIT_LOOP);
-            break;
+          
         }
 
         draw_pine();
