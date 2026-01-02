@@ -33,7 +33,7 @@ constexpr size_t MAX_PINECONES = 100;  // 最大数
 
 // pine
 uint16_t pine_thickness = 32;
-uint16_t pine_height = 50;
+uint16_t pine_height = 10;
 uint16_t pine_x = 104;
 
 // user
@@ -53,34 +53,6 @@ uint16_t kiwi_x = 5;
 uint16_t kiwi_y = 30;
 
 // --- Functions ---
-void core1_entry() {
-    // ハンドシェイク
-    multicore_fifo_push_blocking(HELLO_MSG);
-    while (true) {
-        uint32_t rcvDat = multicore_fifo_pop_blocking();
-        if (rcvDat == EXIT_LOOP) {
-            printf("CORE1: Received");
-            break;
-        }
-
-        multicore_fifo_push_blocking(HELLO_MSG);
-
-        // mutex_enter_blocking(&g_mutex);
-
-        // grow_pine() // TODO
-
-
-        // mutex_exit(&g_mutex);
-
-        sleep_ms(100);
-    }
-    printf("CORE1: IDLE.\r\n");
-    multicore_fifo_push_blocking(EXIT_MSG);
-    while (true) {
-        tight_loop_contents();
-    }
-
-}
 
 // Pinecone functions --->
 void init_pinecones() { // use this function is only for test
@@ -235,7 +207,7 @@ int LCD() {
         // User Action
         if (DEV_Digital_Read(keyA) == 0 ) {
             // show_statics() // TODO: make this function
-            pine_height = 10;
+            pine_height += 10;
             Paint_Clear(WHITE); // for debug
         }
         if (DEV_Digital_Read(keyB) == 0) {
@@ -248,19 +220,15 @@ int LCD() {
             watered_times++;
         }
 
-        if (kiwi_x == 120) {
-            multicore_fifo_push_blocking(EXIT_LOOP);
-        }
-
-        Paint_Clear(WHITE);
         draw_kiwi(kiwi_x);
         draw_pine(pine_height);
         draw_pinecones();  // アクティブなもののみ描画
         LCD_1IN3_Display(BlackImage);
+        Paint_Clear(WHITE);
+
         sleep_ms(LCD_REFRESH_DELAY_MS);
     }
 
-    multicore_reset_core1();
     Paint_Clear(WHITE);
     free(BlackImage);
     BlackImage = NULL;
@@ -277,18 +245,6 @@ int main() {
 
     mutex_init(&g_mutex);
     init_pinecones();
-
-    multicore_launch_core1(core1_entry);
-    uint32_t core1_msg = multicore_fifo_pop_blocking();
-    if (core1_msg != HELLO_MSG) {
-        printf("Unexpected CORE1 HELLO MESSAGE.\r\n");
-        return 1;
-    }
-    printf("CORE0: HELLO MESSAGE received.\r\n");
-
-    while (!multicore_fifo_wready()) { // when FIFO has no room for more data
-        printf("Waiting CORE1.\r\n");
-    }
 
     if (LCD() == 0) {
         printf("LCD failed\n");
