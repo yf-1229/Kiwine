@@ -264,12 +264,6 @@ int LCD() {
             break;
         }
 
-         draw_kiwi();
-         draw_pine();
-         draw_pinecones();  // アクティブなもののみ描画
-         LCD_1IN3_Display(BlackImage);
-
-
         if (!game_status) {
             multicore_fifo_push_blocking(EXIT_LOOP);
         }
