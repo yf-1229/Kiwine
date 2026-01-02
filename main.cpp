@@ -198,10 +198,11 @@ int LCD() {
     // 初期描画
     LCD_1IN3_Display(BlackImage);
     uint32_t core1_msg = 0;
+    game_status = true;
+    screen_updated = false;
 
-    while (true) {
-        while (game_status) {
-        screen_updated = false;
+    while (game_status) {
+        while (!screen_updated) {
 
         if (DEV_Digital_Read(keyUp) == 0) {
             printf("Button Pressed!"); // for Debug
@@ -209,6 +210,7 @@ int LCD() {
             kiwi_status = KiwiStatus::Idle;
 
             screen_updated = true;
+            break;
         }
         if (DEV_Digital_Read(keyDown) == 0) {
             printf("Button Pressed!"); // for Debug
@@ -218,6 +220,7 @@ int LCD() {
 
             screen_updated = true;
             sleep_ms(200);
+            break;
         }
         if (DEV_Digital_Read(keyLeft) == 0) {
             printf("Button Pressed!"); // for Debug
@@ -226,55 +229,60 @@ int LCD() {
             }
             screen_updated = true;
             sleep_ms(200);
+            break;
         }
         if (DEV_Digital_Read(keyRight) == 0) {
             printf("Button Pressed!"); // for Debug
-            if (0 < kiwi_x < LCD_1IN3_HEIGHT) {
+            if (kiwi_x < LCD_1IN3_HEIGHT) {
             	kiwi_x ++;
             }
             screen_updated = true;
             sleep_ms(200);
+            break;
         }
 
         // User Action
-        if (DEV_Digital_Read(keyA)) {
+        if (DEV_Digital_Read(keyA) == 0 ) {
             // show_statics() // TODO: make this function
             pine_height = 10;
             screen_updated = true;
+            break;
         }
-        if (DEV_Digital_Read(keyB)) {
+        if (DEV_Digital_Read(keyB) == 0) {
             screen_updated = true;
+            break;
         }
-        if (DEV_Digital_Read(keyX)) {
+        if (DEV_Digital_Read(keyX) == 0) {
             kiwi_status = KiwiStatus::Eating;
             screen_updated = true;
+            break;
         }
-        if (DEV_Digital_Read(keyY)) {
+        if (DEV_Digital_Read(keyY) == 0) {
             // water_pine() // TODO: make this function
             watered_times++;
             screen_updated = true;
+            break;
         }
 
-        if (screen_updated) {
-        	mutex_enter_blocking(&g_mutex);
-        	screen_updated = false;
-        	mutex_exit(&g_mutex);
+         draw_kiwi();
+         draw_pine();
+         draw_pinecones();  // アクティブなもののみ描画
+         LCD_1IN3_Display(BlackImage);
 
-        	printf("Screen Clear!");
-        	Paint_Clear(WHITE);
-        }
 
         if (!game_status) {
             multicore_fifo_push_blocking(EXIT_LOOP);
-          
         }
+      
+      }
 
-        draw_pine();
-        draw_pinecones();  // アクティブなもののみ描画
-        draw_kiwi();
+      Paint_Clear(WHITE);
+      screen_updated = false;
+      draw_kiwi();
+      draw_pine();
+      draw_pinecones();  // アクティブなもののみ描画
+      LCD_1IN3_Display(BlackImage);
 
-        LCD_1IN3_Display(BlackImage);
-     }
     }
 
     multicore_reset_core1();
