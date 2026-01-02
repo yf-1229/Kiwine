@@ -254,6 +254,8 @@ int LCD() {
         draw_pine(pine_height);
         draw_pinecones();  // アクティブなもののみ描画
         LCD_1IN3_Display(BlackImage);
+        
+        sleep_ms(50);  // Add delay to control refresh rate
     }
 
     multicore_reset_core1();
