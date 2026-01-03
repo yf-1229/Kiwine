@@ -134,15 +134,14 @@ void draw_kiwi(uint16_t x) {
 
 
 int LCD() {
-    DEV_Delay_ms(100);
-    printf("LCD_1in3_test \r\n");
+
     if (DEV_Module_Init() != 0) {
         return -1;
     }
     DEV_SET_PWM(50);
     printf("1.3inch LCD init...\r\n");
     LCD_1IN3_Init(HORIZONTAL);
-    LCD_1IN3_Clear(WHITE);
+    LCD_1IN3_Clear(BLACK);
 
     UDOUBLE Imagesize = LCD_1IN3_HEIGHT * LCD_1IN3_WIDTH * 2;
     UWORD *BlackImage;
@@ -153,9 +152,8 @@ int LCD() {
 
     Paint_NewImage((UBYTE *) BlackImage, LCD_1IN3.WIDTH, LCD_1IN3.HEIGHT, 0, WHITE);
     Paint_SetScale(65);
-    Paint_Clear(WHITE);
+    Paint_Clear(BLACK);
     Paint_SetRotate(ROTATE_0);
-    Paint_Clear(WHITE);
 
     // ボタンピンの初期化
     SET_Infrared_PIN(keyA);
@@ -174,7 +172,17 @@ int LCD() {
     game_status = true;
     bool update_need = false;
 
-    while (1) {
+    while (true) {
+        Paint_Clear(WHITE);
+
+        Paint_DrawCircle(
+        	45,
+        	45,
+        	10,
+        	WHITE,
+        	DOT_PIXEL_4X4,
+        	DRAW_FILL_EMPTY
+        );
         if (DEV_Digital_Read(keyUp) == 0) {
             printf("Button Pressed!"); // for Debug
             kiwi_status = KiwiStatus::Wet;
@@ -193,7 +201,6 @@ int LCD() {
             if (kiwi_x < LCD_1IN3_HEIGHT) {
                 kiwi_x --;
             }
-
             sleep_ms(200);
         }
         if (DEV_Digital_Read(keyRight) == 0) {
@@ -211,11 +218,17 @@ int LCD() {
             // show_statics() // TODO: make this function
             pine_height += 10;
             update_need = true;
+        } else {
+        	draw_pine(pine_height);
         }
+        
         if (DEV_Digital_Read(keyB) == 0) {
         }
+        
         if (DEV_Digital_Read(keyX) == 0) {
             kiwi_status = KiwiStatus::Eating;
+        } else {
+        	draw_kiwi(kiwi_x);
         }
         if (DEV_Digital_Read(keyY) == 0) {
             // water_pine() // TODO: make this function
@@ -224,14 +237,11 @@ int LCD() {
 
         if (update_need) {
         	Paint_Clear(BLACK);
+        	update_need = false;
         }
 
-        draw_kiwi(kiwi_x);
-        draw_pine(pine_height);
-        // アクティブなもののみ描画
     }
 
-    Paint_Clear(BLACK);
     free(BlackImage);
     BlackImage = NULL;
     DEV_Module_Exit();
@@ -240,7 +250,6 @@ int LCD() {
 }
 
 
-// TIP コードを<b>Run</b>するには、<shortcut actionId="Run"/> を押すか、ガターにある <icon src="AllIcons.Actions.Execute"/> アイコンをクリックします。
 int main() {
     stdio_init_all();
     printf("CORE0: start.\r\n");
@@ -248,9 +257,7 @@ int main() {
     mutex_init(&g_mutex);
     init_pinecones();
 
-    if (LCD() == 0) {
-        printf("LCD failed\n");
-    }
+    LCD();
     while (true) {
         sleep_ms(1000);
     }
