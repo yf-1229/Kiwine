@@ -1,13 +1,13 @@
 #include <iostream>
 
 #include "main.h"
-#include <atomic>
 #include <random>
 #include "pico/stdlib.h"
 #include "pico/aon_timer.h"
 #include "pico/multicore.h"
 #include "pico/mutex.h"
 #include "external/ydf/ydf_model.h"
+
 
 extern "C" {
 #include "GUI_Paint.h"
@@ -145,12 +145,12 @@ int LCD() {
 
     UDOUBLE Imagesize = LCD_1IN3_HEIGHT * LCD_1IN3_WIDTH * 2;
     UWORD *BlackImage;
-    if ((BlackImage = (UWORD *) malloc(Imagesize)) == NULL) {
+    if ((BlackImage = static_cast<uint16_t *>(malloc(Imagesize))) == nullptr) {
         printf("Failed to apply for black memory...\r\n");
         exit(0);
     }
 
-    Paint_NewImage((UBYTE *) BlackImage, LCD_1IN3.WIDTH, LCD_1IN3.HEIGHT, 0, WHITE);
+    Paint_NewImage(reinterpret_cast<uint8_t *>(BlackImage), LCD_1IN3.WIDTH, LCD_1IN3.HEIGHT, 0, WHITE);
     Paint_SetScale(65);
     Paint_Clear(BLACK);
     Paint_SetRotate(ROTATE_0);
@@ -172,71 +172,78 @@ int LCD() {
     game_status = true;
     bool update_need = false;
 
+    draw_kiwi(kiwi_x);
+    draw_pine(pine_height);
+
     while (true) {
         Paint_Clear(WHITE);
 
-        Paint_DrawCircle(
-        	45,
-        	45,
-        	10,
-        	WHITE,
-        	DOT_PIXEL_4X4,
-        	DRAW_FILL_EMPTY
-        );
         if (DEV_Digital_Read(keyUp) == 0) {
-            printf("Button Pressed!"); // for Debug
+            printf("keyUp Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Wet;
             kiwi_status = KiwiStatus::Idle;
         }
         if (DEV_Digital_Read(keyDown) == 0) {
-            printf("Button Pressed!"); // for Debug
+            printf("keyDown Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Eating;
             remove_pinecones(kiwi_x);
             kiwi_status = KiwiStatus::Idle;
 
             sleep_ms(200);
         }
-        if (DEV_Digital_Read(keyLeft) == 0) {
-            printf("Button Pressed!"); // for Debug
-            if (kiwi_x < LCD_1IN3_HEIGHT) {
-                kiwi_x --;
-            }
-            sleep_ms(200);
-        }
-        if (DEV_Digital_Read(keyRight) == 0) {
-            printf("Button Pressed!"); // for Debug
-            if (kiwi_x < LCD_1IN3_HEIGHT) {
-            	kiwi_x ++;
-            }
-            update_need = true;
+        if (DEV_Digital_Read(keyLeft) == 0 && kiwi_x > 0) {
+            printf("keyLeft Pressed!\r\n"); // for Debug
 
+            kiwi_x --;
+            update_need = true;
             sleep_ms(200);
+        } else {
+            draw_kiwi(kiwi_x);
+        }
+
+        if (DEV_Digital_Read(keyRight) == 0 && kiwi_x < LCD_1IN3_WIDTH) {
+            printf("KeyRight Pressed!\r\n"); // for Debug
+
+            kiwi_x ++;
+            update_need = true;
+            sleep_ms(200);
+        } else {
+            draw_kiwi(kiwi_x);
         }
 
         // User Action
         if (DEV_Digital_Read(keyA) == 0 ) {
+            printf("KeyA Pressed!\r\n");
             // show_statics() // TODO: make this function
-            pine_height += 10;
+            pine_height += 10; // TODO : For Debug
+
             update_need = true;
         } else {
         	draw_pine(pine_height);
         }
         
         if (DEV_Digital_Read(keyB) == 0) {
+            printf("KeyB Pressed!\r\n");
+            break;
         }
         
         if (DEV_Digital_Read(keyX) == 0) {
+            printf("KeyX Pressed!\r\n");
             kiwi_status = KiwiStatus::Eating;
+            update_need = true;
         } else {
         	draw_kiwi(kiwi_x);
         }
+
         if (DEV_Digital_Read(keyY) == 0) {
+            printf("KeyY Pressed!\r\n");
             // water_pine() // TODO: make this function
             watered_times++;
         }
 
         if (update_need) {
-        	Paint_Clear(BLACK);
+            printf("Screen Updated!\r\n");
+            LCD_1IN3_Display(BlackImage);
         	update_need = false;
         }
 
@@ -257,10 +264,9 @@ int main() {
     mutex_init(&g_mutex);
     init_pinecones();
 
+
     LCD();
-    while (true) {
-        sleep_ms(1000);
-    }
+
 
     return 0;
 }
