@@ -208,7 +208,6 @@ int LCD() {
         if (DEV_Digital_Read(keyA) == 0 ) {
             // show_statics() // TODO: make this function
             pine_height += 10;
-            Paint_Clear(WHITE); // for debug
         }
         if (DEV_Digital_Read(keyB) == 0) {
         }
@@ -219,13 +218,12 @@ int LCD() {
             // water_pine() // TODO: make this function
             watered_times++;
         }
-
+        
+        Paint_Clear(WHITE);
         draw_kiwi(kiwi_x);
         draw_pine(pine_height);
         draw_pinecones();  // アクティブなもののみ描画
-        LCD_1IN3_Display(BlackImage);
-        Paint_Clear(WHITE);
-
+        
         sleep_ms(LCD_REFRESH_DELAY_MS);
     }
 
