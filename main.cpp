@@ -172,6 +172,7 @@ int LCD() {
     LCD_1IN3_Display(BlackImage);
     uint32_t core1_msg = 0;
     game_status = true;
+    bool update_need = false;
 
     while (1) {
         if (DEV_Digital_Read(keyUp) == 0) {
@@ -200,6 +201,7 @@ int LCD() {
             if (kiwi_x < LCD_1IN3_HEIGHT) {
             	kiwi_x ++;
             }
+            update_need = true;
 
             sleep_ms(200);
         }
@@ -208,6 +210,7 @@ int LCD() {
         if (DEV_Digital_Read(keyA) == 0 ) {
             // show_statics() // TODO: make this function
             pine_height += 10;
+            update_need = true;
         }
         if (DEV_Digital_Read(keyB) == 0) {
         }
@@ -218,16 +221,17 @@ int LCD() {
             // water_pine() // TODO: make this function
             watered_times++;
         }
-        
-        Paint_Clear(WHITE);
+
+        if (update_need) {
+        	Paint_Clear(BLACK);
+        }
+
         draw_kiwi(kiwi_x);
         draw_pine(pine_height);
         // アクティブなもののみ描画
-        
-        sleep_ms(LCD_REFRESH_DELAY_MS);
     }
 
-    Paint_Clear(WHITE);
+    Paint_Clear(BLACK);
     free(BlackImage);
     BlackImage = NULL;
     DEV_Module_Exit();
