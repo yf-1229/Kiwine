@@ -222,7 +222,7 @@ int LCD() {
         Paint_Clear(WHITE);
         draw_kiwi(kiwi_x);
         draw_pine(pine_height);
-        draw_pinecones();  // アクティブなもののみ描画
+        // アクティブなもののみ描画
         
         sleep_ms(LCD_REFRESH_DELAY_MS);
     }
