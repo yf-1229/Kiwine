@@ -223,12 +223,19 @@ int LCD() {
         }
 
         if (update_need) {
-        	Paint_Clear(BLACK);
+        	Paint_Clear(WHITE);
+        	update_need = false;
         }
 
         draw_kiwi(kiwi_x);
         draw_pine(pine_height);
-        // アクティブなもののみ描画
+        draw_pinecones();
+        
+        // 画面を更新
+        LCD_1IN3_Display(BlackImage);
+        
+        // フレームレート制御
+        sleep_ms(LCD_REFRESH_DELAY_MS);
     }
 
     Paint_Clear(BLACK);
