@@ -1,13 +1,13 @@
 #include <iostream>
 
 #include "main.h"
-#include <atomic>
 #include <random>
 #include "pico/stdlib.h"
 #include "pico/aon_timer.h"
 #include "pico/multicore.h"
 #include "pico/mutex.h"
 #include "external/ydf/ydf_model.h"
+
 
 extern "C" {
 #include "GUI_Paint.h"
@@ -145,12 +145,12 @@ int LCD() {
 
     UDOUBLE Imagesize = LCD_1IN3_HEIGHT * LCD_1IN3_WIDTH * 2;
     UWORD *BlackImage;
-    if ((BlackImage = (UWORD *) malloc(Imagesize)) == NULL) {
+    if ((BlackImage = static_cast<uint16_t *>(malloc(Imagesize))) == nullptr) {
         printf("Failed to apply for black memory...\r\n");
         exit(0);
     }
 
-    Paint_NewImage((UBYTE *) BlackImage, LCD_1IN3.WIDTH, LCD_1IN3.HEIGHT, 0, WHITE);
+    Paint_NewImage(reinterpret_cast<uint8_t *>(BlackImage), LCD_1IN3.WIDTH, LCD_1IN3.HEIGHT, 0, WHITE);
     Paint_SetScale(65);
     Paint_Clear(BLACK);
     Paint_SetRotate(ROTATE_0);
@@ -171,6 +171,9 @@ int LCD() {
     uint32_t core1_msg = 0;
     game_status = true;
     bool update_need = false;
+
+    draw_kiwi(kiwi_x);
+    draw_pine(pine_height);
 
     while (true) {
         Paint_Clear(WHITE);
@@ -223,6 +226,7 @@ int LCD() {
         }
         
         if (DEV_Digital_Read(keyB) == 0) {
+            break;
         }
         
         if (DEV_Digital_Read(keyX) == 0) {
@@ -236,7 +240,7 @@ int LCD() {
         }
 
         if (update_need) {
-        	Paint_Clear(BLACK);
+            LCD_1IN3_Display(BlackImage);
         	update_need = false;
         }
 
@@ -257,10 +261,9 @@ int main() {
     mutex_init(&g_mutex);
     init_pinecones();
 
+
     LCD();
-    while (true) {
-        sleep_ms(1000);
-    }
+
 
     return 0;
 }
