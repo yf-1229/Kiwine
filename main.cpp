@@ -145,7 +145,7 @@ void draw_kiwi(const uint16_t x) {
                 kiwi_head_x,
                 kiwi_head_y,
                 kiwi_head_size,
-                BLACK, // TODO : it is blown
+                BROWN,
                 DOT_PIXEL_4X4,
                 DRAW_FILL_EMPTY
                 );
@@ -180,7 +180,7 @@ void draw_kiwi(const uint16_t x) {
                 kiwi_head_x,
                 kiwi_head_y,
                 kiwi_head_size,
-                BLACK, // TODO : it is blown
+                BROWN,
                 DOT_PIXEL_4X4,
                 DRAW_FILL_EMPTY
                 );
@@ -216,7 +216,7 @@ void draw_kiwi(const uint16_t x) {
                 kiwi_head_x,
                 kiwi_head_y,
                 kiwi_head_size,
-                BLACK, // TODO : it is blown
+                BROWN,
                 DOT_PIXEL_4X4,
                 DRAW_FILL_EMPTY
                 );
