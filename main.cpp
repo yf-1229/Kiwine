@@ -87,11 +87,6 @@ void update_pinecones(const uint16_t x) {
 }
 
 void remove_pinecones(uint16_t target_x, const uint8_t pineconeCollisionDistance = 5) {
-    if (move_positive) {
-        target_x += kiwi_size;
-    } else {
-        target_x -= kiwi_size;
-    }
     mutex_enter_blocking(&g_mutex);
 
     for (auto& pc : pinecones) {
