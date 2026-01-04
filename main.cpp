@@ -60,6 +60,12 @@ uint8_t burned_times = 0;
 
 
 // --- Functions ---
+
+void core1_entry() {
+    multicore_fifo_push_blocking(HELLO_MSG);
+    uint32_t rcvDat = multicore_fifo_pop_blocking();
+    printf("CORE1: Received ${rcvDat}");
+}
 // Pinecone functions --->
 void init_pinecones() { // use this function is only for test
     pinecones.reserve(MAX_PINECONES);
