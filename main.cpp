@@ -94,17 +94,17 @@ void remove_pinecones(const uint16_t target_x, const uint8_t pineconeCollisionDi
 }
 
 // Draw functions --->
-void draw_pinecones(const uint8_t size = 1) {
-    mutex_enter_blocking(&g_mutex);
-    const std::vector<PineconeData> local_pinecones = g_pinecones;
-    mutex_exit(&g_mutex);
-    for (const auto& pc : local_pinecones) {
+void draw_pinecones() {
+    for (const auto& pc : g_pinecones) {
         if (pc.active) {
+            constexpr int height = LCD_1IN3_HEIGHT;
+            constexpr uint8_t size = 2;
+
             Paint_DrawRectangle(
                 pc.x,
-                LCD_1IN3_HEIGHT - size,
+                height - size,
                 pc.x + size,
-                LCD_1IN3_HEIGHT,
+                height,
                 BROWN,
                 DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
         }
@@ -239,6 +239,8 @@ int LCD() {
             printf("KeyY Pressed!\r\n");
             // water_pine() // TODO: make this function
             watered_times++;
+        } else {
+            draw_pinecones();
         }
 
         if (update_need) {
