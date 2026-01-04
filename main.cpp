@@ -45,7 +45,7 @@ enum class KiwiStatus : uint8_t {
 };
 KiwiStatus kiwi_status = KiwiStatus::Idle;
 uint16_t kiwi_x = 40; // body
-constexpr uint16_t kiwi_y = LCD_1IN3_HEIGHT - 46; // body
+constexpr uint16_t kiwi_y = LCD_1IN3_HEIGHT - 30; // body
 constexpr uint8_t kiwi_size = 20; // body
 constexpr uint16_t kiwi_head_size = 7;
 
@@ -233,6 +233,7 @@ int LCD() {
     game_status = true;
     bool update_need = false;
 
+    uint16_t kiwi_space = kiwi_size*2 + kiwi_head_size * 2;
     draw_kiwi(kiwi_x);
     draw_pine(pine_height);
 
@@ -252,7 +253,7 @@ int LCD() {
             update_need = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
-        if (DEV_Digital_Read(keyLeft) == 0 && kiwi_x > 0) {
+        if (DEV_Digital_Read(keyLeft) == 0 && kiwi_x > kiwi_space) {
             printf("keyLeft Pressed!\r\n"); // for Debug
             kiwi_x -= kiwi_speed;
             move_positive = false;
@@ -262,7 +263,7 @@ int LCD() {
             draw_kiwi(kiwi_x);
         }
 
-        if (DEV_Digital_Read(keyRight) == 0 && kiwi_x < LCD_1IN3_WIDTH) {
+        if (DEV_Digital_Read(keyRight) == 0 && kiwi_x < (LCD_1IN3_WIDTH + kiwi_space) ) {
             printf("KeyRight Pressed!\r\n"); // for Debug
             kiwi_x += kiwi_speed;
             move_positive = true;
