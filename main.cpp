@@ -28,7 +28,7 @@ struct PineconeData {
     bool active = false;  // true=表示、false=非表示
 };
 static mutex_t g_mutex;
-std::vector<PineconeData> g_pinecones;
+std::vector<PineconeData> pinecones;
 constexpr size_t MAX_PINECONES = 100;  // 最大数
 
 // pine
@@ -56,20 +56,20 @@ uint16_t kiwi_y = 30;
 
 // Pinecone functions --->
 void init_pinecones() { // use this function is only for test
-    g_pinecones.reserve(MAX_PINECONES);
+    pinecones.reserve(MAX_PINECONES);
 
     // 最初に5個を配置
-    g_pinecones.push_back({.x = 10, .active = true});
-    g_pinecones.push_back({.x = 30, .active = true});
-    g_pinecones.push_back({.x = 50, .active = true});
-    g_pinecones.push_back({.x = 70, .active = true});
-    g_pinecones.push_back({.x = 90, .active = true});
+    pinecones.push_back({.x = 10, .active = true});
+    pinecones.push_back({.x = 30, .active = true});
+    pinecones.push_back({.x = 50, .active = true});
+    pinecones.push_back({.x = 70, .active = true});
+    pinecones.push_back({.x = 90, .active = true});
 }
 
 void update_pinecones(const uint16_t x) {
     mutex_enter_blocking(&g_mutex);
 
-    for (auto& pc : g_pinecones) {
+    for (auto& pc : pinecones) {
         if (!pc.active) {
             pc.x = x;
             pc.active = true;
@@ -83,7 +83,7 @@ void update_pinecones(const uint16_t x) {
 void remove_pinecones(const uint16_t target_x, const uint8_t pineconeCollisionDistance = 5) {
     mutex_enter_blocking(&g_mutex);
 
-    for (auto& pc : g_pinecones) {
+    for (auto& pc : pinecones) {
         if (pc.active && abs(static_cast<int>(pc.x) - static_cast<int>(target_x)) < pineconeCollisionDistance) {
             pc.active = false;
             break;
@@ -95,7 +95,7 @@ void remove_pinecones(const uint16_t target_x, const uint8_t pineconeCollisionDi
 
 // Draw functions --->
 void draw_pinecones() {
-    for (const auto& pc : g_pinecones) {
+    for (const auto& pc : pinecones) {
         if (pc.active) {
             constexpr int height = LCD_1IN3_HEIGHT;
             constexpr uint8_t size = 2;
