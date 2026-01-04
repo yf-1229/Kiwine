@@ -20,6 +20,7 @@ extern "C" {
 // --- Parameters ---
 bool game_status = true;
 
+
 // LCD refresh rate
 constexpr uint16_t LCD_REFRESH_DELAY_MS = 50;  // ~20 FPS
 
