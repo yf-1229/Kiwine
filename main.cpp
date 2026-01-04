@@ -16,6 +16,7 @@ extern "C" {
 #include "external/Config/DEV_Config.h"
 #include <stdio.h>
 }
+
 // --- Parameters --
 bool game_status = true;
 
@@ -29,17 +30,12 @@ struct PineconeData {
 };
 static mutex_t g_mutex;
 std::vector<PineconeData> pinecones;
-constexpr size_t MAX_PINECONES = 100;  // 最大数
+constexpr size_t MAX_PINECONES = 50;  // 最大数
 
 // pine
 uint16_t pine_thickness = 32;
 uint16_t pine_height = 10;
-uint16_t pine_x = 104;
-
-// user
-uint8_t watered_times = 0;
-uint8_t burned_times = 0;
-uint8_t logged_times = 0;
+constexpr uint16_t pine_x = 104;
 
 // kiwi
 enum class KiwiStatus : uint8_t {
@@ -47,11 +43,16 @@ enum class KiwiStatus : uint8_t {
     Eating,
     Wet
 };
-
-KiwiStatus kiwi_status = KiwiStatus::Idle; // TODO make Idle
+KiwiStatus kiwi_status = KiwiStatus::Idle;
 uint16_t kiwi_x = 5;
-uint16_t kiwi_y = 30;
+constexpr uint16_t kiwi_y = LCD_1IN3_HEIGHT - 5;
+constexpr uint8_t kiwi_size = 5;
+uint8_t kiwi_speed = 3;
 
+// user
+uint8_t watered_times = 0;
+uint8_t burned_times = 0;
+uint8_t logged_times = 0;
 // --- Functions ---
 
 // Pinecone functions --->
@@ -80,7 +81,7 @@ void update_pinecones(const uint16_t x) {
     mutex_exit(&g_mutex);
 }
 
-void remove_pinecones(const uint16_t target_x, const uint8_t pineconeCollisionDistance = 5) {
+void remove_pinecones(const uint16_t target_x, const uint8_t pineconeCollisionDistance = 3) {
     mutex_enter_blocking(&g_mutex);
 
     for (auto& pc : pinecones) {
@@ -111,7 +112,7 @@ void draw_pinecones() {
     }
 }
 
-void draw_pine(uint16_t height) {
+void draw_pine(const uint16_t height) {
     Paint_DrawRectangle(
         pine_x,
         LCD_1IN3_HEIGHT - height,
@@ -121,15 +122,42 @@ void draw_pine(uint16_t height) {
         DOT_PIXEL_4X4, DRAW_FILL_FULL);
 }
 
-void draw_kiwi(uint16_t x) {
-          Paint_DrawCircle(
-           x,
-           kiwi_y,
-           3,
-           GREEN,
-           DOT_PIXEL_4X4,
-           DRAW_FILL_EMPTY
-          );
+void draw_kiwi(const uint16_t x) {
+    switch (kiwi_status) {
+        case KiwiStatus::Eating:
+            Paint_DrawCircle( // TODO : make kiwi's bitmap
+            x,
+            kiwi_y,
+            kiwi_size,
+            RED,
+            DOT_PIXEL_4X4,
+            DRAW_FILL_EMPTY
+            );
+            break;
+
+        case KiwiStatus::Wet:
+            Paint_DrawCircle(
+                    x,
+                    kiwi_y,
+                    kiwi_size,
+                    BLUE,
+                    DOT_PIXEL_4X4,
+                    DRAW_FILL_EMPTY
+                    );
+            break;
+
+        case KiwiStatus::Idle:
+        default:
+            Paint_DrawCircle(
+                x,
+                kiwi_y,
+                kiwi_size,
+                GREEN,
+                DOT_PIXEL_4X4,
+                DRAW_FILL_EMPTY
+                );
+            break;
+    }
  }
 
 
@@ -181,32 +209,30 @@ int LCD() {
         if (DEV_Digital_Read(keyUp) == 0) {
             printf("keyUp Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Wet;
-            kiwi_status = KiwiStatus::Idle;
+            update_need = true;
+            sleep_ms(LCD_REFRESH_DELAY_MS);
         }
         if (DEV_Digital_Read(keyDown) == 0) {
             printf("keyDown Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Eating;
             remove_pinecones(kiwi_x);
-            kiwi_status = KiwiStatus::Idle;
-
-            sleep_ms(200);
+            update_need = true;
+            sleep_ms(LCD_REFRESH_DELAY_MS);
         }
         if (DEV_Digital_Read(keyLeft) == 0 && kiwi_x > 0) {
             printf("keyLeft Pressed!\r\n"); // for Debug
-
-            kiwi_x --;
+            kiwi_x -= kiwi_speed;
             update_need = true;
-            sleep_ms(200);
+            sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
             draw_kiwi(kiwi_x);
         }
 
         if (DEV_Digital_Read(keyRight) == 0 && kiwi_x < LCD_1IN3_WIDTH) {
             printf("KeyRight Pressed!\r\n"); // for Debug
-
-            kiwi_x ++;
+            kiwi_x += kiwi_speed;
             update_need = true;
-            sleep_ms(200);
+            sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
             draw_kiwi(kiwi_x);
         }
@@ -216,14 +242,15 @@ int LCD() {
             printf("KeyA Pressed!\r\n");
             // show_statics() // TODO: make this function
             pine_height += 10; // TODO : For Debug
-
             update_need = true;
+            sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
         	draw_pine(pine_height);
         }
         
         if (DEV_Digital_Read(keyB) == 0) {
             printf("KeyB Pressed!\r\n");
+            sleep_ms(LCD_REFRESH_DELAY_MS);
             break;
         }
         
@@ -231,6 +258,7 @@ int LCD() {
             printf("KeyX Pressed!\r\n");
             kiwi_status = KiwiStatus::Eating;
             update_need = true;
+            sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
         	draw_kiwi(kiwi_x);
         }
@@ -246,7 +274,9 @@ int LCD() {
         if (update_need) {
             printf("Screen Updated!\r\n");
             LCD_1IN3_Display(BlackImage);
+            kiwi_status = KiwiStatus::Idle;
         	update_need = false;
+            sleep_ms(LCD_REFRESH_DELAY_MS);
         }
 
     }
@@ -266,9 +296,7 @@ int main() {
     mutex_init(&g_mutex);
     init_pinecones();
 
-
     LCD();
-
 
     return 0;
 }
