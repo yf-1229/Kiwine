@@ -105,7 +105,7 @@ void draw_pinecones() {
         if (pc.active) {
             constexpr int height = LCD_1IN3_HEIGHT;
 
-            Paint_DrawChar(  // TODO: make it to AA(# or & or % or $)
+            Paint_DrawChar(
                 pc.x,
                 height - 20,
                 '#',
