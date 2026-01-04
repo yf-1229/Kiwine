@@ -86,7 +86,12 @@ void update_pinecones(const uint16_t x) {
     mutex_exit(&g_mutex);
 }
 
-void remove_pinecones(const uint16_t target_x, const uint8_t pineconeCollisionDistance = 3) {
+void remove_pinecones(uint16_t target_x, const uint8_t pineconeCollisionDistance = 5) {
+    if (move_positive) {
+        target_x += kiwi_size;
+    } else {
+        target_x -= kiwi_size;
+    }
     mutex_enter_blocking(&g_mutex);
 
     for (auto& pc : pinecones) {
@@ -133,25 +138,73 @@ void draw_kiwi(const uint16_t x) {
 
     switch (kiwi_status) {
         case KiwiStatus::Eating:
-            Paint_DrawCircle( // TODO : make kiwi's bitmap
-            x,
-            kiwi_y,
-            kiwi_size,
-            RED,
-            DOT_PIXEL_4X4,
-            DRAW_FILL_EMPTY
+            if (move_positive) {
+                kiwi_head_x = x + kiwi_size + kiwi_head_size;
+                kiwi_head_y = kiwi_y + kiwi_size;
+            } else {
+                kiwi_head_x = x - kiwi_size - kiwi_head_size;
+                kiwi_head_y = kiwi_y + kiwi_size;
+            }
+
+            Paint_DrawCircle( // head
+                kiwi_head_x,
+                kiwi_head_y,
+                kiwi_head_size,
+                BLACK, // TODO : it is blown
+                DOT_PIXEL_4X4,
+                DRAW_FILL_EMPTY
+                );
+            Paint_DrawCircle(
+                kiwi_x,
+                kiwi_y,
+                kiwi_size,
+                WHITE,
+                DOT_PIXEL_4X4,
+                DRAW_FILL_FULL
             );
+            Paint_DrawCircle( // body
+                x,
+                kiwi_y,
+                kiwi_size,
+                GREEN,
+                DOT_PIXEL_6X6,
+                DRAW_FILL_EMPTY
+                );
             break;
 
         case KiwiStatus::Wet:
+            if (move_positive) {
+                kiwi_head_x = x + kiwi_size + kiwi_head_size;
+                kiwi_head_y = kiwi_y;
+            } else {
+                kiwi_head_x = x - kiwi_size - kiwi_head_size;
+                kiwi_head_y = kiwi_y;
+            }
+
+            Paint_DrawCircle( // head
+                kiwi_head_x,
+                kiwi_head_y,
+                kiwi_head_size,
+                BLACK, // TODO : it is blown
+                DOT_PIXEL_4X4,
+                DRAW_FILL_EMPTY
+                );
             Paint_DrawCircle(
-                    x,
-                    kiwi_y,
-                    kiwi_size,
-                    BLUE,
-                    DOT_PIXEL_4X4,
-                    DRAW_FILL_EMPTY
-                    );
+                kiwi_x,
+                kiwi_y,
+                kiwi_size,
+                WHITE,
+                DOT_PIXEL_4X4,
+                DRAW_FILL_FULL
+            );
+            Paint_DrawCircle( // body
+                x,
+                kiwi_y,
+                kiwi_size,
+                GREEN,
+                DOT_PIXEL_6X6,
+                DRAW_FILL_EMPTY
+                );
             break;
 
         case KiwiStatus::Idle:
@@ -188,7 +241,6 @@ void draw_kiwi(const uint16_t x) {
                 DOT_PIXEL_6X6,
                 DRAW_FILL_EMPTY
                 );
-
             break;
     }
  }
