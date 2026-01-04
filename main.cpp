@@ -17,7 +17,7 @@ extern "C" {
 #include <stdio.h>
 }
 
-// --- Parameters --
+// --- Parameters ---
 bool game_status = true;
 
 // LCD refresh rate
@@ -44,17 +44,22 @@ enum class KiwiStatus : uint8_t {
     Wet
 };
 KiwiStatus kiwi_status = KiwiStatus::Idle;
-uint16_t kiwi_x = 5;
-constexpr uint16_t kiwi_y = LCD_1IN3_HEIGHT - 5;
-constexpr uint8_t kiwi_size = 5;
+uint16_t kiwi_x = 10;
+constexpr uint16_t kiwi_y = LCD_1IN3_HEIGHT - 40;
+constexpr uint8_t kiwi_size = 10;
+constexpr uint16_t kiwi_head_size = 5;
+
+bool move_positive = true; // true = right, false = left
+
 uint8_t kiwi_speed = 3;
 
 // user
 uint8_t watered_times = 0;
 uint8_t burned_times = 0;
 uint8_t logged_times = 0;
-// --- Functions ---
 
+
+// --- Functions ---
 // Pinecone functions --->
 void init_pinecones() { // use this function is only for test
     pinecones.reserve(MAX_PINECONES);
@@ -113,7 +118,7 @@ void draw_pinecones() {
 }
 
 void draw_pine(const uint16_t height) {
-    Paint_DrawRectangle(
+    Paint_DrawRectangle( // TODO: make it to AA(# or & or % or $)
         pine_x,
         LCD_1IN3_HEIGHT - height,
         pine_x + pine_thickness,
@@ -123,6 +128,9 @@ void draw_pine(const uint16_t height) {
 }
 
 void draw_kiwi(const uint16_t x) {
+    uint16_t kiwi_head_x; // increase from (kiwi_x + kiwi_size)
+    uint16_t kiwi_head_y;
+
     switch (kiwi_status) {
         case KiwiStatus::Eating:
             Paint_DrawCircle( // TODO : make kiwi's bitmap
@@ -148,7 +156,23 @@ void draw_kiwi(const uint16_t x) {
 
         case KiwiStatus::Idle:
         default:
-            Paint_DrawCircle(
+            if (move_positive) {
+                kiwi_head_x = x + kiwi_size + kiwi_head_size;
+                kiwi_head_y = kiwi_y - kiwi_size;
+            } else {
+                kiwi_head_x = x - kiwi_size - kiwi_head_size;
+                kiwi_head_y = kiwi_y - kiwi_size;
+            }
+
+            Paint_DrawCircle( // head
+                kiwi_head_x,
+                kiwi_head_y,
+                kiwi_head_size,
+                BLACK,
+                DOT_PIXEL_4X4,
+                DRAW_FILL_EMPTY
+                );
+            Paint_DrawCircle( // body
                 x,
                 kiwi_y,
                 kiwi_size,
@@ -156,6 +180,7 @@ void draw_kiwi(const uint16_t x) {
                 DOT_PIXEL_4X4,
                 DRAW_FILL_EMPTY
                 );
+
             break;
     }
  }
@@ -222,6 +247,7 @@ int LCD() {
         if (DEV_Digital_Read(keyLeft) == 0 && kiwi_x > 0) {
             printf("keyLeft Pressed!\r\n"); // for Debug
             kiwi_x -= kiwi_speed;
+            move_positive = false;
             update_need = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
@@ -231,6 +257,7 @@ int LCD() {
         if (DEV_Digital_Read(keyRight) == 0 && kiwi_x < LCD_1IN3_WIDTH) {
             printf("KeyRight Pressed!\r\n"); // for Debug
             kiwi_x += kiwi_speed;
+            move_positive = true;
             update_need = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
