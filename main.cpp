@@ -57,7 +57,6 @@ uint8_t kiwi_speed = 3;
 // user
 uint8_t watered_times = 0;
 uint8_t burned_times = 0;
-uint8_t logged_times = 0;
 
 
 // --- Functions ---
