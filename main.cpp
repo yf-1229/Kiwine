@@ -44,10 +44,10 @@ enum class KiwiStatus : uint8_t {
     Wet
 };
 KiwiStatus kiwi_status = KiwiStatus::Idle;
-uint16_t kiwi_x = 10;
-constexpr uint16_t kiwi_y = LCD_1IN3_HEIGHT - 40;
-constexpr uint8_t kiwi_size = 10;
-constexpr uint16_t kiwi_head_size = 5;
+uint16_t kiwi_x = 40; // body
+constexpr uint16_t kiwi_y = LCD_1IN3_HEIGHT - 46; // body
+constexpr uint8_t kiwi_size = 20; // body
+constexpr uint16_t kiwi_head_size = 7;
 
 bool move_positive = true; // true = right, false = left
 
@@ -168,16 +168,24 @@ void draw_kiwi(const uint16_t x) {
                 kiwi_head_x,
                 kiwi_head_y,
                 kiwi_head_size,
-                BLACK,
+                BLACK, // TODO : it is blown
                 DOT_PIXEL_4X4,
                 DRAW_FILL_EMPTY
                 );
+            Paint_DrawCircle(
+                kiwi_x,
+                kiwi_y,
+                kiwi_size,
+                WHITE,
+                DOT_PIXEL_4X4,
+                DRAW_FILL_FULL
+            );
             Paint_DrawCircle( // body
                 x,
                 kiwi_y,
                 kiwi_size,
                 GREEN,
-                DOT_PIXEL_4X4,
+                DOT_PIXEL_6X6,
                 DRAW_FILL_EMPTY
                 );
 
