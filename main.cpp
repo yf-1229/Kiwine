@@ -35,7 +35,7 @@ constexpr size_t MAX_PINECONES = 50;  // 最大数
 
 // pine
 uint16_t pine_thickness = 32;
-uint16_t pine_height = 10;
+uint16_t pine_height = 50;
 constexpr uint16_t pine_x = 104;
 
 // kiwi
@@ -104,21 +104,21 @@ void draw_pinecones() {
     for (const auto& pc : pinecones) {
         if (pc.active) {
             constexpr int height = LCD_1IN3_HEIGHT;
-            constexpr uint8_t size = 2;
 
-            Paint_DrawRectangle(
+            Paint_DrawChar(  // TODO: make it to AA(# or & or % or $)
                 pc.x,
-                height - size,
-                pc.x + size,
-                height,
-                BROWN,
-                DOT_PIXEL_4X4, DRAW_FILL_EMPTY);
+                height - 20,
+                '#',
+                &Font20,
+                BLACK,
+                WHITE
+                );
         }
     }
 }
 
 void draw_pine(const uint16_t height) {
-    Paint_DrawRectangle( // TODO: make it to AA(# or & or % or $)
+    Paint_DrawRectangle(
         pine_x,
         LCD_1IN3_HEIGHT - height,
         pine_x + pine_thickness,
