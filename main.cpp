@@ -62,20 +62,37 @@ uint8_t burned_times = 0;
 // --- Functions ---
 
 void core1_entry() {
-    multicore_fifo_push_blocking(HELLO_MSG);
-    uint32_t rcvDat = multicore_fifo_pop_blocking();
-    printf("CORE1: Received ${rcvDat}");
+    using namespace ydf_model;
+    uint32_t rcvDat = 0;
 
     while (true) {
+        // If there's a message, handle it; otherwise continue working.
         rcvDat = multicore_fifo_pop_blocking();
-        if (rcvDat == EXIT_LOOP) break;
+        if (rcvDat == EXIT_MSG) {
+            break;
+        }
+
+        Instance input{};
+        input.rain_freq_monthly = watered_times;
+        input.soil_nutrients = burned_times;
+        input.current_height_px = pine_height;
+        float predicted_growth = Predict(input);
+        printf("CORE1: Predicted Growth: %.4f\r\n", predicted_growth);
+
+        if (pine_height > LCD_1IN3_HEIGHT) {
+            pine_height = LCD_1IN3_HEIGHT;
+        } else {
+            pine_height += static_cast<uint16_t>(predicted_growth);
+        }
+
+        sleep_ms(100);
     }
     printf("CORE1: IDLE.\r\n");
-    multicore_fifo_push_blocking(EXIT_MSG);
     while (true) {
         tight_loop_contents();
     }
 }
+
 // Pinecone functions --->
 void init_pinecones() { // use this function is only for test
     pinecones.reserve(MAX_PINECONES);
@@ -350,7 +367,7 @@ int LCD() {
         if (DEV_Digital_Read(keyB) == 0) {
             printf("KeyB Pressed!\r\n");
             sleep_ms(LCD_REFRESH_DELAY_MS);
-            multicore_fifo_push_blocking(EXIT_LOOP);
+            multicore_fifo_push_blocking(EXIT_MSG);
             break;
         }
         
@@ -375,12 +392,10 @@ int LCD() {
             printf("Screen Updated!\r\n");
             LCD_1IN3_Display(BlackImage);
             kiwi_status = KiwiStatus::Idle;
-            multicore_fifo_push_blocking(HELLO_MSG);
         	update_need = false;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
     }
-
     multicore_reset_core1();
     LCD_1IN3_Display(BlackImage);
     sleep_ms(16);  // 約60fps
@@ -403,7 +418,12 @@ int main() {
     while (!multicore_fifo_wready()) { // when FIFO has no room for more data
         printf("Waiting CORE1.\r\n");
     }
+
     LCD();
+
+    if (!game_status) {
+        printf("GAME OVER.\r\n");
+    }
 
     return 0;
 }

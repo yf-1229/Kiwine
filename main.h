@@ -21,7 +21,7 @@
 #define FLAG_VALUE 123
 #define HELLO_MSG  (99999)
 #define EXIT_MSG  (99998)
-#define EXIT_LOOP   (99997)
+#define STOP_LOOP   (99997)
 
 #endif //BAMBOO_MAIN_H
 
