@@ -65,6 +65,16 @@ void core1_entry() {
     multicore_fifo_push_blocking(HELLO_MSG);
     uint32_t rcvDat = multicore_fifo_pop_blocking();
     printf("CORE1: Received ${rcvDat}");
+
+    while (true) {
+        rcvDat = multicore_fifo_pop_blocking();
+        if (rcvDat == EXIT_LOOP) break;
+    }
+    printf("CORE1: IDLE.\r\n");
+    multicore_fifo_push_blocking(EXIT_MSG);
+    while (true) {
+        tight_loop_contents();
+    }
 }
 // Pinecone functions --->
 void init_pinecones() { // use this function is only for test
@@ -340,6 +350,7 @@ int LCD() {
         if (DEV_Digital_Read(keyB) == 0) {
             printf("KeyB Pressed!\r\n");
             sleep_ms(LCD_REFRESH_DELAY_MS);
+            multicore_fifo_push_blocking(EXIT_LOOP);
             break;
         }
         
@@ -364,12 +375,16 @@ int LCD() {
             printf("Screen Updated!\r\n");
             LCD_1IN3_Display(BlackImage);
             kiwi_status = KiwiStatus::Idle;
+            multicore_fifo_push_blocking(HELLO_MSG);
         	update_need = false;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
-
     }
 
+    multicore_reset_core1();
+    LCD_1IN3_Display(BlackImage);
+    sleep_ms(16);  // 約60fps
+    puts("Off");
     free(BlackImage);
     BlackImage = NULL;
     DEV_Module_Exit();
@@ -381,10 +396,13 @@ int LCD() {
 int main() {
     stdio_init_all();
     printf("CORE0: start.\r\n");
-
+    multicore_launch_core1(core1_entry);
     mutex_init(&g_mutex);
     init_pinecones();
 
+    while (!multicore_fifo_wready()) { // when FIFO has no room for more data
+        printf("Waiting CORE1.\r\n");
+    }
     LCD();
 
     return 0;
