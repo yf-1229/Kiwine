@@ -66,12 +66,6 @@ void core1_entry() {
     uint32_t rcvDat = 0;
 
     while (true) {
-        // If there's a message, handle it; otherwise continue working.
-        rcvDat = multicore_fifo_pop_blocking();
-        if (rcvDat == EXIT_MSG) {
-            break;
-        }
-
         Instance input{};
         input.rain_freq_monthly = watered_times;
         input.soil_nutrients = burned_times;
@@ -83,6 +77,13 @@ void core1_entry() {
             pine_height = LCD_1IN3_HEIGHT;
         } else {
             pine_height += static_cast<uint16_t>(predicted_growth);
+        }
+
+        if (multicore_fifo_rvalid()) {
+            rcvDat = multicore_fifo_pop_blocking();
+            if (rcvDat == EXIT_MSG) {
+                break;
+            }
         }
 
         sleep_ms(100);
