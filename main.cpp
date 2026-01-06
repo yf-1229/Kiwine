@@ -55,8 +55,8 @@ bool move_positive = true; // true = right, false = left
 uint8_t kiwi_speed = 3;
 
 // user
-uint8_t watered_times = 0;
-uint8_t burned_times = 0;
+uint8_t watered_times = 30;
+uint8_t burned_times = 1;
 
 
 // --- Functions ---
@@ -79,16 +79,15 @@ void core1_entry() {
             pine_height += static_cast<uint16_t>(predicted_growth);
         }
 
-        if (multicore_fifo_rvalid()) {
-            rcvDat = multicore_fifo_pop_blocking();
-            if (rcvDat == EXIT_MSG) {
-                break;
-            }
+        rcvDat = multicore_fifo_pop_blocking();
+        if (rcvDat == EXIT_MSG) {
+            break;
         }
 
         sleep_ms(100);
     }
     printf("CORE1: IDLE.\r\n");
+    multicore_fifo_push_blocking(EXIT_MSG);
     while (true) {
         tight_loop_contents();
     }
@@ -396,6 +395,9 @@ int LCD() {
         	update_need = false;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
+
+        printf("CORE0: Send");
+        multicore_fifo_push_blocking(HELLO_MSG);
     }
     multicore_reset_core1();
     LCD_1IN3_Display(BlackImage);
