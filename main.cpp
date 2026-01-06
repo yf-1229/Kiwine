@@ -19,7 +19,7 @@ extern "C" {
 
 // --- Parameters ---
 bool game_status = true;
-
+bool update_need = false;
 
 // LCD refresh rate
 constexpr uint16_t LCD_REFRESH_DELAY_MS = 50;  // ~20 FPS
@@ -65,6 +65,8 @@ void core1_entry() {
     using namespace ydf_model;
     uint32_t rcvDat = 0;
 
+    bool* const update_need_ptr = &update_need;
+
     while (true) {
         Instance input{};
         input.rain_freq_monthly = watered_times;
@@ -77,6 +79,7 @@ void core1_entry() {
             pine_height = LCD_1IN3_HEIGHT;
         } else {
             pine_height += static_cast<uint16_t>(predicted_growth);
+            *update_need_ptr = true;
         }
 
         rcvDat = multicore_fifo_pop_blocking();
@@ -87,6 +90,7 @@ void core1_entry() {
         sleep_ms(100);
     }
     printf("CORE1: IDLE.\r\n");
+    delete update_need_ptr;
     multicore_fifo_push_blocking(EXIT_MSG);
     while (true) {
         tight_loop_contents();
@@ -311,7 +315,7 @@ int LCD() {
     LCD_1IN3_Display(BlackImage);
     uint32_t core1_msg = 0;
     game_status = true;
-    bool update_need = false;
+    bool* const update_need_ptr = &update_need;
 
     uint16_t kiwi_space = kiwi_size*2 + kiwi_head_size * 2;
     draw_kiwi(kiwi_x);
@@ -323,21 +327,21 @@ int LCD() {
         if (DEV_Digital_Read(keyUp) == 0) {
             printf("keyUp Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Wet;
-            update_need = true;
+            *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
         if (DEV_Digital_Read(keyDown) == 0) {
             printf("keyDown Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Eating;
             remove_pinecones(kiwi_x);
-            update_need = true;
+            *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
         if (DEV_Digital_Read(keyLeft) == 0 && kiwi_x > kiwi_space) {
             printf("keyLeft Pressed!\r\n"); // for Debug
             kiwi_x -= kiwi_speed;
             move_positive = false;
-            update_need = true;
+            *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
             draw_kiwi(kiwi_x);
@@ -347,7 +351,7 @@ int LCD() {
             printf("KeyRight Pressed!\r\n"); // for Debug
             kiwi_x += kiwi_speed;
             move_positive = true;
-            update_need = true;
+            *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
             draw_kiwi(kiwi_x);
@@ -372,7 +376,7 @@ int LCD() {
         if (DEV_Digital_Read(keyX) == 0) {
             printf("KeyX Pressed!\r\n");
             kiwi_status = KiwiStatus::Eating;
-            update_need = true;
+            *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
         	draw_kiwi(kiwi_x);
@@ -386,11 +390,11 @@ int LCD() {
             draw_pinecones();
         }
 
-        if (update_need) {
+        if (*update_need_ptr) {
             printf("Screen Updated!\r\n");
             LCD_1IN3_Display(BlackImage);
             kiwi_status = KiwiStatus::Idle;
-        	update_need = false;
+        	*update_need_ptr = false;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
 
