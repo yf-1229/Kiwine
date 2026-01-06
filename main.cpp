@@ -32,6 +32,7 @@ struct PineconeData {
 static mutex_t g_mutex;
 std::vector<PineconeData> pinecones;
 constexpr size_t MAX_PINECONES = 50;  // 最大数
+constexpr uint8_t pineconeCollisionDistance = 5;
 
 // pine
 uint16_t pine_thickness = 32;
@@ -64,7 +65,6 @@ uint8_t burned_times = 1;
 void core1_entry() {
     using namespace ydf_model;
     uint32_t rcvDat = 0;
-
     bool* const update_need_ptr = &update_need;
 
     while (true) {
@@ -90,7 +90,6 @@ void core1_entry() {
         sleep_ms(100);
     }
     printf("CORE1: IDLE.\r\n");
-    delete update_need_ptr;
     multicore_fifo_push_blocking(EXIT_MSG);
     while (true) {
         tight_loop_contents();
@@ -99,22 +98,24 @@ void core1_entry() {
 
 // Pinecone functions --->
 void init_pinecones() { // use this function is only for test
-    pinecones.reserve(MAX_PINECONES);
+    std::vector<PineconeData>* pinecones_ptr = &pinecones;
+    pinecones_ptr->reserve(MAX_PINECONES);
 
     // 最初に5個を配置
-    pinecones.push_back({.x = 10, .active = true});
-    pinecones.push_back({.x = 30, .active = true});
-    pinecones.push_back({.x = 50, .active = true});
-    pinecones.push_back({.x = 70, .active = true});
-    pinecones.push_back({.x = 90, .active = true});
+    pinecones_ptr->push_back({.x = 10, .active = true});
+    pinecones_ptr->push_back({.x = 30, .active = true});
+    pinecones_ptr->push_back({.x = 50, .active = true});
+    pinecones_ptr->push_back({.x = 70, .active = true});
+    pinecones_ptr->push_back({.x = 90, .active = true});
+
 }
 
-void update_pinecones(const uint16_t x) {
+void update_pinecones(const std::vector<PineconeData>* pinecones_ptr, const uint16_t target_x) {
     mutex_enter_blocking(&g_mutex);
 
     for (auto& pc : pinecones) {
         if (!pc.active) {
-            pc.x = x;
+            pc.x = target_x;
             pc.active = true;
             break;
         }
@@ -123,7 +124,7 @@ void update_pinecones(const uint16_t x) {
     mutex_exit(&g_mutex);
 }
 
-void remove_pinecones(uint16_t target_x, const uint8_t pineconeCollisionDistance = 5) {
+void remove_pinecones(const std::vector<PineconeData>* pinecones_ptr, const uint16_t target_x) {
     mutex_enter_blocking(&g_mutex);
 
     for (auto& pc : pinecones) {
@@ -137,8 +138,8 @@ void remove_pinecones(uint16_t target_x, const uint8_t pineconeCollisionDistance
 }
 
 // Draw functions --->
-void draw_pinecones() {
-    for (const auto& pc : pinecones) {
+void draw_pinecones(const std::vector<PineconeData>* pinecones_ptr) {
+    for (const auto& pc : *pinecones_ptr) {
         if (pc.active) {
             constexpr int height = LCD_1IN3_HEIGHT;
 
@@ -319,7 +320,9 @@ int LCD() {
 
     uint16_t kiwi_space = kiwi_size*2 + kiwi_head_size * 2;
     draw_kiwi(kiwi_x);
+
     draw_pine(pine_height);
+    std::vector<PineconeData>* pinecones_ptr = &pinecones;
 
     while (true) {
         Paint_Clear(WHITE);
@@ -333,7 +336,7 @@ int LCD() {
         if (DEV_Digital_Read(keyDown) == 0) {
             printf("keyDown Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Eating;
-            remove_pinecones(kiwi_x);
+            remove_pinecones(pinecones_ptr, kiwi_x); // TODO to make pointer
             *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
@@ -387,14 +390,18 @@ int LCD() {
             // water_pine() // TODO: make this function
             watered_times++;
         } else {
-            draw_pinecones();
+            draw_pinecones(pinecones_ptr);
         }
 
         if (*update_need_ptr) {
             printf("Screen Updated!\r\n");
             LCD_1IN3_Display(BlackImage);
+
+            mutex_enter_blocking(&g_mutex);
             kiwi_status = KiwiStatus::Idle;
         	*update_need_ptr = false;
+            mutex_exit(&g_mutex);
+
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
 
