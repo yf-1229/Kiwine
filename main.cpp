@@ -357,8 +357,6 @@ int LCD() {
         if (DEV_Digital_Read(keyA) == 0 ) {
             printf("KeyA Pressed!\r\n");
             // show_statics() // TODO: make this function
-            pine_height += 10; // TODO : For Debug
-            update_need = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
         	draw_pine(pine_height);
