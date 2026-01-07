@@ -32,12 +32,12 @@ struct PineconeData {
 static mutex_t g_mutex;
 std::vector<PineconeData> pinecones;
 constexpr size_t MAX_PINECONES = 50;  // 最大数
-constexpr uint8_t pineconeCollisionDistance = 5;
+constexpr uint8_t PINECONE_COLLISION_DISTANCE = 5;
 
 // pine
-uint16_t pine_thickness = 32;
+constexpr uint16_t PINE_THICKNESS = 32;
 uint16_t pine_height = 50;
-constexpr uint16_t pine_x = 104;
+constexpr uint16_t PINE_X = 104;
 
 // kiwi
 enum class KiwiStatus : uint8_t {
@@ -47,9 +47,10 @@ enum class KiwiStatus : uint8_t {
 };
 KiwiStatus kiwi_status = KiwiStatus::Idle;
 uint16_t kiwi_x = 40; // body
-constexpr uint16_t kiwi_y = LCD_1IN3_HEIGHT - 30; // body
-constexpr uint8_t kiwi_size = 20; // body
-constexpr uint16_t kiwi_head_size = 7;
+constexpr uint16_t KIWI_Y = LCD_1IN3_HEIGHT - 30; // body
+constexpr uint8_t KIWI_SIZE = 20; // body
+constexpr uint16_t KIWI_HEAD_SIZE = 7;
+constexpr uint16_t KIWI_SPACE = KIWI_SIZE * 2 + KIWI_HEAD_SIZE * 2;
 
 bool move_positive = true; // true = right, false = left
 
@@ -65,20 +66,21 @@ uint8_t burned_times = 1;
 void core1_entry() {
     using namespace ydf_model;
     uint32_t rcvDat = 0;
+    uint16_t* const pine_height_ptr = &pine_height;
     bool* const update_need_ptr = &update_need;
 
     while (true) {
         Instance input{};
         input.rain_freq_monthly = watered_times;
         input.soil_nutrients = burned_times;
-        input.current_height_px = pine_height;
+        input.current_height_px = *pine_height_ptr;
         float predicted_growth = Predict(input);
         printf("CORE1: Predicted Growth: %.4f\r\n", predicted_growth);
 
-        if (pine_height > LCD_1IN3_HEIGHT) {
-            pine_height = LCD_1IN3_HEIGHT;
+        if (*pine_height_ptr > LCD_1IN3_HEIGHT) {
+            *pine_height_ptr = LCD_1IN3_HEIGHT;
         } else {
-            pine_height += static_cast<uint16_t>(predicted_growth);
+            *pine_height_ptr += static_cast<uint16_t>(predicted_growth);
             *update_need_ptr = true;
         }
 
@@ -93,6 +95,47 @@ void core1_entry() {
     multicore_fifo_push_blocking(EXIT_MSG);
     while (true) {
         tight_loop_contents();
+    }
+}
+
+void show_rain()
+{
+    constexpr int drop_count = 20;
+    constexpr int drop_length = 10;
+    constexpr int drop_spacing = 5;
+    constexpr int start_y = 0;
+    constexpr int end_y = LCD_1IN3_HEIGHT;
+
+    for (int i = 0; i < drop_count; ++i) {
+        int drop_x = (i * drop_spacing) % LCD_1IN3_WIDTH;
+        for (int y = start_y; y < end_y; y += drop_length + drop_spacing) {
+            Paint_DrawLine(
+                drop_x,
+                y,
+                drop_x,
+                y + drop_length,
+                BLUE,
+                DOT_PIXEL_2X2,
+                LINE_STYLE_SOLID
+            );
+        }
+    }
+    sleep_ms(100); // 雨の表示時間
+
+    // 雨を消す
+    for (int i = 0; i < drop_count; ++i) {
+        int drop_x = (i * drop_spacing) % LCD_1IN3_WIDTH;
+        for (int y = start_y; y < end_y; y += drop_length + drop_spacing) {
+            Paint_DrawLine(
+                drop_x,
+                y,
+                drop_x,
+                y + drop_length,
+                WHITE,
+                DOT_PIXEL_2X2,
+                LINE_STYLE_SOLID
+            );
+        }
     }
 }
 
@@ -128,7 +171,7 @@ void remove_pinecones(const std::vector<PineconeData>* pinecones_ptr, const uint
     mutex_enter_blocking(&g_mutex);
 
     for (auto& pc : pinecones) {
-        if (pc.active && abs(static_cast<int>(pc.x) - static_cast<int>(target_x)) < pineconeCollisionDistance) {
+        if (pc.active && abs(static_cast<int>(pc.x) - static_cast<int>(target_x)) < PINECONE_COLLISION_DISTANCE) {
             pc.active = false;
             break;
         }
@@ -157,9 +200,9 @@ void draw_pinecones(const std::vector<PineconeData>* pinecones_ptr) {
 
 void draw_pine(const uint16_t height) {
     Paint_DrawRectangle(
-        pine_x,
+        PINE_X,
         LCD_1IN3_HEIGHT - height,
-        pine_x + pine_thickness,
+        PINE_X + PINE_THICKNESS,
         LCD_1IN3_HEIGHT,
         BLACK,
         DOT_PIXEL_4X4, DRAW_FILL_FULL);
@@ -172,33 +215,33 @@ void draw_kiwi(const uint16_t x) {
     switch (kiwi_status) {
         case KiwiStatus::Eating:
             if (move_positive) {
-                kiwi_head_x = x + kiwi_size + kiwi_head_size;
-                kiwi_head_y = kiwi_y + kiwi_size;
+                kiwi_head_x = x + KIWI_SIZE + KIWI_HEAD_SIZE;
+                kiwi_head_y = KIWI_Y + KIWI_SIZE;
             } else {
-                kiwi_head_x = x - kiwi_size - kiwi_head_size;
-                kiwi_head_y = kiwi_y + kiwi_size;
+                kiwi_head_x = x - KIWI_SIZE - KIWI_HEAD_SIZE;
+                kiwi_head_y = KIWI_Y + KIWI_SIZE;
             }
 
             Paint_DrawCircle( // head
                 kiwi_head_x,
                 kiwi_head_y,
-                kiwi_head_size,
+                KIWI_HEAD_SIZE,
                 BROWN,
                 DOT_PIXEL_4X4,
                 DRAW_FILL_EMPTY
                 );
             Paint_DrawCircle(
                 kiwi_x,
-                kiwi_y,
-                kiwi_size,
+                KIWI_Y,
+                KIWI_SIZE,
                 WHITE,
                 DOT_PIXEL_4X4,
                 DRAW_FILL_FULL
             );
             Paint_DrawCircle( // body
                 x,
-                kiwi_y,
-                kiwi_size,
+                KIWI_Y,
+                KIWI_SIZE,
                 GREEN,
                 DOT_PIXEL_6X6,
                 DRAW_FILL_EMPTY
@@ -207,33 +250,33 @@ void draw_kiwi(const uint16_t x) {
 
         case KiwiStatus::Wet:
             if (move_positive) {
-                kiwi_head_x = x + kiwi_size + kiwi_head_size;
-                kiwi_head_y = kiwi_y;
+                kiwi_head_x = x + KIWI_SIZE + KIWI_HEAD_SIZE;
+                kiwi_head_y = KIWI_Y;
             } else {
-                kiwi_head_x = x - kiwi_size - kiwi_head_size;
-                kiwi_head_y = kiwi_y;
+                kiwi_head_x = x - KIWI_SIZE - KIWI_HEAD_SIZE;
+                kiwi_head_y = KIWI_Y;
             }
 
             Paint_DrawCircle( // head
                 kiwi_head_x,
                 kiwi_head_y,
-                kiwi_head_size,
+                KIWI_HEAD_SIZE,
                 BROWN,
                 DOT_PIXEL_4X4,
                 DRAW_FILL_EMPTY
                 );
             Paint_DrawCircle(
                 kiwi_x,
-                kiwi_y,
-                kiwi_size,
+                KIWI_Y,
+                KIWI_SIZE,
                 WHITE,
                 DOT_PIXEL_4X4,
                 DRAW_FILL_FULL
             );
             Paint_DrawCircle( // body
                 x,
-                kiwi_y,
-                kiwi_size,
+                KIWI_Y,
+                KIWI_SIZE,
                 GREEN,
                 DOT_PIXEL_6X6,
                 DRAW_FILL_EMPTY
@@ -243,33 +286,33 @@ void draw_kiwi(const uint16_t x) {
         case KiwiStatus::Idle:
         default:
             if (move_positive) {
-                kiwi_head_x = x + kiwi_size + kiwi_head_size;
-                kiwi_head_y = kiwi_y - kiwi_size;
+                kiwi_head_x = x + KIWI_SIZE + KIWI_HEAD_SIZE;
+                kiwi_head_y = KIWI_Y - KIWI_SIZE;
             } else {
-                kiwi_head_x = x - kiwi_size - kiwi_head_size;
-                kiwi_head_y = kiwi_y - kiwi_size;
+                kiwi_head_x = x - KIWI_SIZE - KIWI_HEAD_SIZE;
+                kiwi_head_y = KIWI_Y - KIWI_SIZE;
             }
 
             Paint_DrawCircle( // head
                 kiwi_head_x,
                 kiwi_head_y,
-                kiwi_head_size,
+                KIWI_HEAD_SIZE,
                 BROWN,
                 DOT_PIXEL_4X4,
                 DRAW_FILL_EMPTY
                 );
             Paint_DrawCircle(
                 kiwi_x,
-                kiwi_y,
-                kiwi_size,
+                KIWI_Y,
+                KIWI_SIZE,
                 WHITE,
                 DOT_PIXEL_4X4,
                 DRAW_FILL_FULL
             );
             Paint_DrawCircle( // body
                 x,
-                kiwi_y,
-                kiwi_size,
+                KIWI_Y,
+                KIWI_SIZE,
                 GREEN,
                 DOT_PIXEL_6X6,
                 DRAW_FILL_EMPTY
@@ -317,11 +360,11 @@ int LCD() {
     uint32_t core1_msg = 0;
     game_status = true;
     bool* const update_need_ptr = &update_need;
-
-    uint16_t kiwi_space = kiwi_size*2 + kiwi_head_size * 2;
-    draw_kiwi(kiwi_x);
-
-    draw_pine(pine_height);
+    uint8_t* watered_times_ptr = &watered_times;
+    uint16_t* kiwi_x_ptr = &kiwi_x;
+    uint16_t* pine_height_ptr = &pine_height;
+    draw_kiwi(*kiwi_x_ptr);
+    draw_pine(*pine_height_ptr);
     std::vector<PineconeData>* pinecones_ptr = &pinecones;
 
     while (true) {
@@ -330,50 +373,54 @@ int LCD() {
         if (DEV_Digital_Read(keyUp) == 0) {
             printf("keyUp Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Wet;
+            *watered_times_ptr ++;
+            show_rain();
             *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
         if (DEV_Digital_Read(keyDown) == 0) {
             printf("keyDown Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Eating;
-            remove_pinecones(pinecones_ptr, kiwi_x); // TODO to make pointer
+            remove_pinecones(pinecones_ptr, *kiwi_x_ptr); // TODO to make pointer
             *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         }
-        if (DEV_Digital_Read(keyLeft) == 0 && kiwi_x > kiwi_space) {
+        if (DEV_Digital_Read(keyLeft) == 0 && *kiwi_x_ptr > KIWI_SPACE) {
             printf("keyLeft Pressed!\r\n"); // for Debug
-            kiwi_x -= kiwi_speed;
+            *kiwi_x_ptr -= kiwi_speed;
             move_positive = false;
             *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
-            draw_kiwi(kiwi_x);
+            draw_kiwi(*kiwi_x_ptr);
         }
 
-        if (DEV_Digital_Read(keyRight) == 0 && kiwi_x < (LCD_1IN3_WIDTH + kiwi_space) ) {
+        if (DEV_Digital_Read(keyRight) == 0 && *kiwi_x_ptr < (LCD_1IN3_WIDTH + KIWI_SPACE) ) {
             printf("KeyRight Pressed!\r\n"); // for Debug
-            kiwi_x += kiwi_speed;
+            *kiwi_x_ptr += kiwi_speed;
             move_positive = true;
             *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
-            draw_kiwi(kiwi_x);
+            draw_kiwi(*kiwi_x_ptr);
         }
 
         // User Action
-        if (DEV_Digital_Read(keyA) == 0 ) {
+        if (DEV_Digital_Read(keyA) == 0 )
+        {
             printf("KeyA Pressed!\r\n");
-            // show_statics() // TODO: make this function
+            multicore_fifo_push_blocking(EXIT_MSG);
             sleep_ms(LCD_REFRESH_DELAY_MS);
-        } else {
-        	draw_pine(pine_height);
+            break;
         }
+
         
         if (DEV_Digital_Read(keyB) == 0) {
             printf("KeyB Pressed!\r\n");
+            // show_statics() // TODO: make this function
             sleep_ms(LCD_REFRESH_DELAY_MS);
-            multicore_fifo_push_blocking(EXIT_MSG);
-            break;
+        } else {
+            draw_pine(pine_height);
         }
         
         if (DEV_Digital_Read(keyX) == 0) {
@@ -382,13 +429,12 @@ int LCD() {
             *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
         } else {
-        	draw_kiwi(kiwi_x);
+        	draw_kiwi(*kiwi_x_ptr);
         }
 
         if (DEV_Digital_Read(keyY) == 0) {
             printf("KeyY Pressed!\r\n");
             // water_pine() // TODO: make this function
-            watered_times++;
         } else {
             draw_pinecones(pinecones_ptr);
         }
