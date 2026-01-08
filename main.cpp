@@ -98,45 +98,26 @@ void core1_entry() {
     }
 }
 
-void show_rain()
+void show_rain(bool active = false;)
 {
-    constexpr int drop_count = 20;
-    constexpr int drop_length = 10;
-    constexpr int drop_spacing = 5;
-    constexpr int start_y = 0;
-    constexpr int end_y = LCD_1IN3_HEIGHT;
+    if (active) {
+        constexpr int drop_count = 20;
+        constexpr int drop_length = 10;
+        constexpr int drop_spacing = 5;
+        constexpr int start_y = 0;
+        constexpr int end_y = LCD_1IN3_HEIGHT;
 
-    for (int i = 0; i < drop_count; ++i) {
-        int drop_x = (i * drop_spacing) % LCD_1IN3_WIDTH;
-        for (int y = start_y; y < end_y; y += drop_length + drop_spacing) {
+        for (uint8_t i = 0; i ++; drop_count) {
             Paint_DrawLine(
-                drop_x,
-                y,
-                drop_x,
-                y + drop_length,
-                BLUE,
-                DOT_PIXEL_2X2,
-                LINE_STYLE_SOLID
-            );
+                // random
+            )
         }
+        
+    } else {
+        break;
     }
-    sleep_ms(100); // 雨の表示時間
+    
 
-    // 雨を消す
-    for (int i = 0; i < drop_count; ++i) {
-        int drop_x = (i * drop_spacing) % LCD_1IN3_WIDTH;
-        for (int y = start_y; y < end_y; y += drop_length + drop_spacing) {
-            Paint_DrawLine(
-                drop_x,
-                y,
-                drop_x,
-                y + drop_length,
-                WHITE,
-                DOT_PIXEL_2X2,
-                LINE_STYLE_SOLID
-            );
-        }
-    }
 }
 
 // Pinecone functions --->
@@ -366,7 +347,7 @@ int LCD() {
     draw_kiwi(*kiwi_x_ptr);
     draw_pine(*pine_height_ptr);
     std::vector<PineconeData>* pinecones_ptr = &pinecones;
-
+    bool raining = false;
     while (true) {
         Paint_Clear(WHITE);
 
@@ -374,9 +355,11 @@ int LCD() {
             printf("keyUp Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Wet;
             *watered_times_ptr ++;
-            show_rain();
+            raining = false;
             *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
+        } else {
+            show_rain(raining);
         }
         if (DEV_Digital_Read(keyDown) == 0) {
             printf("keyDown Pressed!\r\n"); // for Debug
