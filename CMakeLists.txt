@@ -24,24 +24,24 @@ include_directories(./external/Infrared)
 
 
 # generate executable file
-add_executable(BamBoo
+add_executable(Kiwine
         main.cpp
         main.h
         external/ydf/ydf_model.h
 )
 
 # enable usb output, disable uart output
-pico_enable_stdio_usb(BamBoo 1)
-pico_enable_stdio_uart(BamBoo 1)
+pico_enable_stdio_usb(Kiwine 1)
+pico_enable_stdio_uart(Kiwine 1)
 
 # create map/bin/hex/uf2 file etc.
-pico_add_extra_outputs(BamBoo)
+pico_add_extra_outputs(Kiwine)
 
 include(pico_sdk_import.cmake)
 include(FetchContent)
 
 # Add the standard library to the build
-target_link_libraries(BamBoo PRIVATE
+target_link_libraries(Kiwine PRIVATE
         pico_stdlib
         pico_aon_timer
         pico_multicore
@@ -57,7 +57,7 @@ target_link_libraries(BamBoo PRIVATE
 
 
 # Add the standard include files to the build
-target_include_directories(BamBoo PRIVATE
+target_include_directories(Kiwine PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
 
