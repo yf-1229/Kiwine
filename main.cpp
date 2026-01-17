@@ -54,11 +54,11 @@ constexpr uint16_t KIWI_SPACE = KIWI_SIZE * 2 + KIWI_HEAD_SIZE * 2;
 
 bool move_positive = true; // true = right, false = left
 
-uint8_t kiwi_speed = 3;
+uint8_t kiwi_speed = 4;
 
 // user
-uint8_t watered_times = 30;
-uint8_t burned_times = 1;
+uint8_t watered_times = 0;
+uint8_t eat_times = 0;
 
 
 // --- Functions ---
@@ -72,7 +72,7 @@ void core1_entry() {
     while (true) {
         Instance input{};
         input.rain_freq_monthly = watered_times;
-        input.soil_nutrients = burned_times;
+        input.soil_nutrients = eat_times;
         input.current_height_px = *pine_height_ptr;
         float predicted_growth = Predict(input);
         printf("CORE1: Predicted Growth: %.4f\r\n", predicted_growth);
@@ -96,28 +96,6 @@ void core1_entry() {
     while (true) {
         tight_loop_contents();
     }
-}
-
-void show_rain(bool active = false;)
-{
-    if (active) {
-        constexpr int drop_count = 20;
-        constexpr int drop_length = 10;
-        constexpr int drop_spacing = 5;
-        constexpr int start_y = 0;
-        constexpr int end_y = LCD_1IN3_HEIGHT;
-
-        for (uint8_t i = 0; i ++; drop_count) {
-            Paint_DrawLine(
-                // random
-            )
-        }
-        
-    } else {
-        break;
-    }
-    
-
 }
 
 // Pinecone functions --->
@@ -170,7 +148,7 @@ void draw_pinecones(const std::vector<PineconeData>* pinecones_ptr) {
             Paint_DrawChar(
                 pc.x,
                 height - 20,
-                '#',
+                '$',
                 &Font20,
                 BLACK,
                 WHITE
@@ -339,31 +317,34 @@ int LCD() {
     // 初期描画
     LCD_1IN3_Display(BlackImage);
     uint32_t core1_msg = 0;
+
     game_status = true;
     bool* const update_need_ptr = &update_need;
+
     uint8_t* watered_times_ptr = &watered_times;
+    uint8_t* eat_times_ptr = &eat_times;
     uint16_t* kiwi_x_ptr = &kiwi_x;
     uint16_t* pine_height_ptr = &pine_height;
+    std::vector<PineconeData>* pinecones_ptr = &pinecones;
+
     draw_kiwi(*kiwi_x_ptr);
     draw_pine(*pine_height_ptr);
-    std::vector<PineconeData>* pinecones_ptr = &pinecones;
-    bool raining = false;
+
     while (true) {
         Paint_Clear(WHITE);
 
         if (DEV_Digital_Read(keyUp) == 0) {
             printf("keyUp Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Wet;
-            *watered_times_ptr ++;
-            raining = false;
+            *watered_times_ptr += 1;
             *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
-        } else {
-            show_rain(raining);
         }
         if (DEV_Digital_Read(keyDown) == 0) {
             printf("keyDown Pressed!\r\n"); // for Debug
             kiwi_status = KiwiStatus::Eating;
+            *eat_times_ptr += 1;
+
             remove_pinecones(pinecones_ptr, *kiwi_x_ptr); // TODO to make pointer
             *update_need_ptr = true;
             sleep_ms(LCD_REFRESH_DELAY_MS);
@@ -389,11 +370,12 @@ int LCD() {
         }
 
         // User Action
-        if (DEV_Digital_Read(keyA) == 0 )
+        if (DEV_Digital_Read(keyA) == 0 ) // exit game
         {
             printf("KeyA Pressed!\r\n");
             multicore_fifo_push_blocking(EXIT_MSG);
             sleep_ms(LCD_REFRESH_DELAY_MS);
+            game_status = false;
             break;
         }
 
@@ -401,23 +383,18 @@ int LCD() {
         if (DEV_Digital_Read(keyB) == 0) {
             printf("KeyB Pressed!\r\n");
             // show_statics() // TODO: make this function
-            sleep_ms(LCD_REFRESH_DELAY_MS);
-        } else {
-            draw_pine(pine_height);
         }
         
         if (DEV_Digital_Read(keyX) == 0) {
             printf("KeyX Pressed!\r\n");
-            kiwi_status = KiwiStatus::Eating;
-            *update_need_ptr = true;
-            sleep_ms(LCD_REFRESH_DELAY_MS);
+            *pine_height_ptr = 0;
         } else {
-        	draw_kiwi(*kiwi_x_ptr);
+            draw_pine(*pine_height_ptr);
         }
 
         if (DEV_Digital_Read(keyY) == 0) {
+            // cut pine
             printf("KeyY Pressed!\r\n");
-            // water_pine() // TODO: make this function
         } else {
             draw_pinecones(pinecones_ptr);
         }
